@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🧪 {{ scenario.title }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+
+    /* Agar highlight Ctrl+D terlihat rapi dan tidak bertabrakan dengan row-fail */
+#tc-body tr.table-primary td {
+  background-color: #cfe2ff !important;
+  color: #000 !important;
+}
+#tc-body tr.table-primary.row-fail td {
+  background-color: #cfe2ff !important; /* Tetap biru meskipun status Fail */
+}
+    .multi-line-field {
+  resize: none;
+  overflow: hidden;
+  min-height: 38px;
+  line-height: 1.5;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: border 0.2s;
+}
+.multi-line-field:focus {
+  border-color: #86b7fe;
+  background: #fff;
+}
+    body{background:#f4f6f8}
+    .table-responsive{max-height:60vh;overflow:auto}
+    thead{position:sticky;top:0;z-index:10;background:#fff}
+    .summary-card{border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.05);transition:.2s}
+    .summary-card:hover{transform:translateY(-3px)}
+    .save-badge{position:absolute;right:10px;top:5px;background:#28a745;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;opacity:0;transition:.3s;z-index:100}
+    .drag-handle{cursor:move;opacity:0.4;user-select:none}
+    tr:hover .drag-handle{opacity:1}
+    .row-fail{background:#ffeef0!important}
+    .attach-btn{position:relative}
+    .attach-badge{position:absolute;top:-5px;right:-8px;background:#dc3545;color:#fff;font-size:10px;padding:2px 5px;border-radius:10px;min-width:18px;text-align:center;border:2px solid #fff}
+    .attach-item{border:1px solid #eee;padding:8px;margin-bottom:8px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:grab}
+    .attach-item:hover{background:#f8f9fa}
+    .attach-item.dragging{opacity:0.5}
+    .attach-thumb{width:60px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid #ddd}
+    .log-preview-box{background:#1e1e1e;color:#0f0;font-family:monospace;padding:15px;border-radius:4px;max-height:70vh;overflow:auto;white-space:pre-wrap;font-size:0.9em}
+  </style>
+      <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">📂 QA Dashboard</a>
+        <div class="d-flex align-items-center">
+          {% if current_user %}
+          <div class="dropdown">
+            <button
+              class="btn btn-light btn-sm dropdown-toggle d-flex align-items-center gap-2"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
+              <div class="user-avatar">
+                {{ current_user.username[0] | upper }}
+              </div>
+              <div class="text-start lh-1">
+                <div class="small fw-bold text-dark">
+                  {{ current_user.username }}
+                </div>
+                <div class="small text-muted" style="font-size: 0.7em">
+                  {{ current_user.role | capitalize }}
+                </div>
+              </div>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+              <li class="px-3 py-2">
+                <small class="text-muted">Masuk sebagai</small><br />
+                <strong
+                  >{{ current_user.full_name or current_user.username }}</strong
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="/change-password"
+                  >🔑 Ubah Password</a
+                >
+              </li>
+              {% if current_user.role == 'admin' %}
+              <li><a class="dropdown-item" href="/admin">⚙️ Admin Panel</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item text-danger" href="/logout"
+                  >🚪 Logout</a
+                >
+              </li>
+            </ul>
+          </div>
+          {% else %}
+          <a href="/login" class="btn btn-light btn-sm">🔐 Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+</head>
+<body>
+<nav class="navbar bg-white shadow-sm"><div class="container">
+  <a href="/project/{{project.id}}" class="btn btn-sm btn-outline-secondary">← {{project.name}}</a>
+  <span class="navbar-text fw-bold ms-3">📄 {{scenario.title}} <small class="text-muted">[{{scenario.status}}]</small></span>
+  <a href="/export/{{sid}}" class="btn btn-success btn-sm ms-auto">📥 Export Excel</a>
+</div></nav>
+
+<!-- 📋 Metadata Per-Ticket -->
+<div class="container mt-3"><div class="card bg-white shadow-sm border-0">
+  <div class="card-header d-flex justify-content-between align-items-center py-2 bg-transparent border-bottom">
+    <h6 class="mb-0 fw-bold text-primary">📋 Ticket Metadata</h6>
+    <button class="btn btn-sm btn-outline-primary" onclick="toggleMetaEdit()">✏️ Edit</button>
+  </div>
+  <div class="card-body py-2" id="meta-display">
+    <div class="row small g-2">
+      <div class="col-md-6"><span class="text-muted fw-bold">Link:</span> <span id="m-link">{{scenario.link or '-'}}</span></div>
+      <div class="col-md-4"><span class="text-muted fw-bold">Testers:</span> <span id="m-testers">{{scenario.testers or '-'}}</span></div>
+      <div class="col-md-4"><span class="text-muted fw-bold">Start:</span> <span id="m-start">{{scenario.start_date or '-'}}</span></div>
+      <div class="col-md-4"><span class="text-muted fw-bold">End:</span> <span id="m-end">{{scenario.end_date or '-'}}</span></div>
+    </div>
+  </div>
+  <div class="card-body py-2 d-none" id="meta-form">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6"><label class="small text-muted">Link</label><input type="text" id="f-link" class="form-control form-control-sm" value="{{scenario.link or ''}}"></div>
+      <div class="col-md-3"><label class="small text-muted">Testers</label><input type="text" id="f-testers" class="form-control form-control-sm" value="{{scenario.testers or ''}}"></div>
+      <div class="col-md-3"><button class="btn btn-sm btn-success w-100" onclick="saveTicketMeta()">💾 Save</button></div>
+      <div class="col-md-4"><label class="small text-muted">Start Date</label><input type="date" id="f-start" class="form-control form-control-sm" value="{{scenario.start_date or ''}}"></div>
+      <div class="col-md-4"><label class="small text-muted">End Date</label><input type="date" id="f-end" class="form-control form-control-sm" value="{{scenario.end_date or ''}}"></div>
+      <div class="col-md-4"><button class="btn btn-sm btn-outline-secondary w-100" onclick="toggleMetaEdit()">Cancel</button></div>
+    </div>
+  </div>
+</div></div>
+
+<div class="container-fluid py-3 position-relative">
+  <!-- Summary Cards -->
+  <div class="row mb-3 g-2" id="summary-box">
+    {% for k,cls in [('total','primary'),('pass','success'),('fail','danger'),('not_run','secondary'),('in_progress','warning')] %}
+    <div class="col-6 col-md-2"><div class="card summary-card bg-{{cls}} text-white p-3 text-center"><h4 id="s-{{k}}">{{stats[k]}}</h4><small>{{k.replace('_',' ').title()}}</small></div></div>{% endfor %}
+    <div class="col-12 col-md-2"><div class="card summary-card bg-info text-white p-3 text-center"><h4 id="s-rate">{{stats.pass_rate}}%</h4><small>Pass Rate</small></div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="d-flex gap-2 mb-2 flex-wrap">
+    <select id="statusFilter" class="form-select form-select-sm w-auto" onchange="filterTable()"><option value="">All Status</option><option>Not Run</option><option>In Progress</option><option>Pass</option><option>Fail</option></select>
+    <button class="btn btn-sm px-3" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none" onclick="openAiModal()">✨ AI Multi-Gen</button>
+    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">📥 Import Excel</button>
+    <button class="btn btn-outline-success btn-sm" onclick="addRow()">➕ Add Row</button>
+    <button id="btnBulkDelete" class="btn btn-outline-danger btn-sm" style="display:none;" onclick="bulkDeleteSelected()">🗑️ Hapus Terpilih (<span id="countSelected">0</span>)</button>
+  </div>
+
+  <div class="save-badge" id="save-indicator">💾 Saved</div>
+
+  <!-- Test Case Table -->
+  <div class="table-responsive bg-white rounded shadow-sm">
+    <table class="table table-hover align-middle mb-0">
+      <thead><tr class="bg-light">
+        <th width="30"><input type="checkbox" id="selectAllTc" onclick="toggleSelectAll(this)"></th> <!-- ✅ TAMBAHKAN INI -->
+        <th width="40">Drag</th><th width="90">TC ID</th><th>Test Case</th><th width="150">Criteria</th><th width="130">Test Date</th>
+        <th width="120">Data</th><th width="150">Expected</th><th width="150">Actual</th><th width="120">Status</th><th width="120">Remarks</th>
+        <th width="60" class="text-center">📷</th><th width="60" class="text-center">📝</th><th width="50">🗑️</th>
+      </tr></thead>
+        <tbody id="tc-body">
+  {% for tc in test_cases %}
+  <tr data-id="{{tc.tc_id}}" class="{{'row-fail' if tc.status is equalto 'Fail'}}">
+    <td><input type="checkbox" class="tc-checkbox" value="{{tc.tc_id}}" onchange="updateBulkBtn()"></td> <!-- ✅ TAMBAHKAN INI -->
+    <td class="drag-handle" draggable="true">⋮</td>
+    <td class="fw-bold">{{tc.tc_id}}</td>
+    
+    <!-- ✅ HAPUS |safe, biarkan Jinja2 escape otomatis tapi pertahankan \n -->
+    <td><textarea class="form-control form-control-sm p-1 multi-line-field" data-field="test_case" rows="1" oninput="autoResizeTextarea(this); autoSave('{{tc.tc_id}}', 'test_case', this.value)">{{ tc.test_case or '' }}</textarea></td>
+    <td><textarea class="form-control form-control-sm p-1 multi-line-field" data-field="test_criteria" rows="1" oninput="autoResizeTextarea(this); autoSave('{{tc.tc_id}}', 'test_criteria', this.value)">{{ tc.test_criteria or '' }}</textarea></td>
+    <td><input type="date" class="form-control form-control-sm p-1" data-field="test_date" value="{{tc.test_date or ''}}" onchange="autoSave('{{tc.tc_id}}', 'test_date', this.value)"></td>
+    <td><textarea class="form-control form-control-sm p-1 multi-line-field" data-field="test_data" rows="1" oninput="autoResizeTextarea(this); autoSave('{{tc.tc_id}}', 'test_data', this.value)">{{ tc.test_data or '' }}</textarea></td>
+    <td><textarea class="form-control form-control-sm p-1 multi-line-field" data-field="expected_result" rows="1" oninput="autoResizeTextarea(this); autoSave('{{tc.tc_id}}', 'expected_result', this.value)">{{ tc.expected_result or '' }}</textarea></td>
+    <td><textarea class="form-control form-control-sm p-1 multi-line-field" data-field="actual_result" rows="1" oninput="autoResizeTextarea(this); autoSave('{{tc.tc_id}}', 'actual_result', this.value)">{{ tc.actual_result or '' }}</textarea></td>
+    
+    <td>
+      <select class="form-select form-select-sm" data-field="status" onchange="autoSave('{{tc.tc_id}}', 'status', this.value)">
+        <option {% if tc.status is equalto 'Not Run' %}selected{% endif %}>Not Run</option>
+        <option {% if tc.status is equalto 'In Progress' %}selected{% endif %}>In Progress</option>
+        <option {% if tc.status is equalto 'Pass' %}selected{% endif %}>Pass</option>
+        <option {% if tc.status is equalto 'Fail' %}selected{% endif %}>Fail</option>
+      </select>
+    </td>
+    
+    <td contenteditable="true" data-field="remarks" class="p-1" onblur="autoSave('{{tc.tc_id}}', 'remarks', this.innerText.replace(/[\\n\\r]+/g, ' '))">{{tc.remarks or ''}}</td>
+    
+    <td class="text-center"><button class="btn btn-sm btn-light attach-btn" onclick="openAttachModal('{{tc.tc_id}}','img')">📷<span id="badge-img-{{tc.tc_id}}" class="attach-badge d-none">0</span></button></td>
+    <td class="text-center"><button class="btn btn-sm btn-light attach-btn" onclick="openAttachModal('{{tc.tc_id}}','log')">📝<span id="badge-log-{{tc.tc_id}}" class="attach-badge d-none">0</span></button></td>
+    <td><button class="btn btn-sm btn-outline-danger" onclick="deleteRow('{{tc.tc_id}}')">🗑️</button></td>
+  </tr>{% endfor %}
+</tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== MODALS ========== -->
+<div class="modal fade" id="aiModal"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">✨ AI Multi-Generator</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><textarea id="ai-prompt" class="form-control" rows="4" placeholder="Contoh: buatkan test login, registrasi..."></textarea></div>
+<div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" onclick="runAi()">🤖 Generate</button></div>
+</div></div></div>
+
+<!-- Import Excel Modal -->
+<div class="modal fade" id="importModal"><div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">📥 Import Test Cases</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body">
+  <p class="small text-muted">Upload file .xlsx sesuai format export. Kolom bebas urutan, metadata diabaikan.</p>
+  <input type="file" id="importFile" class="form-control" accept=".xlsx">
+  <div id="importStatus" class="mt-2 small text-muted"></div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+  <button class="btn btn-primary" onclick="handleImport()">📤 Import</button>
+</div>
+</div></div></div>
+
+<div class="modal fade" id="attachModal"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="attachTitle">📎 Attachments</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><input type="hidden" id="attach-tc-id"><input type="hidden" id="attach-type">
+<div class="card mb-3 bg-light"><div class="card-body py-2">
+<div id="img-upload-section"><label class="small fw-bold mb-1 d-block">Upload Image:</label><div class="input-group input-group-sm"><input type="file" class="form-control" id="attach-file-input" accept="image/*"><button class="btn btn-primary" onclick="handleAttachUpload()">⬆️ Upload</button></div></div>
+<div id="log-input-section" class="d-none"><label class="small fw-bold mb-1 d-block">Paste/Type Log Text:</label><textarea class="form-control form-control-sm" id="log-text-input" rows="4" placeholder="Tempel log error di sini..."></textarea><button class="btn btn-sm btn-primary mt-2 w-100" onclick="handleAttachUpload()">💾 Save Log</button></div>
+</div></div><h6 class="small text-muted mb-2">Existing (Drag to reorder):</h6><div id="attach-list" class="mb-3"></div>
+</div></div></div></div>
+
+<div class="modal fade" id="fullImgModal"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-body p-0 text-center bg-black"><img id="full-img" class="img-fluid" src=""></div></div></div></div>
+<div class="modal fade" id="logPreviewModal"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-dark text-white"><h5 class="modal-title">📜 Log Preview</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-0 bg-dark"><pre id="log-preview-content" class="text-success p-3 m-0" style="white-space:pre-wrap;font-family:monospace;font-size:0.9em;"></pre></div></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const SID = {{ sid }}, PID = {{ project.id }}, saveBadge = document.getElementById('save-indicator'), timers = {};
+let attachModalInst = null, logContentCache = {}, currentAttachType = null;
+
+// ===== AUTO-SAVE =====
+function autoSave(tcId, field, value) {
+  if(timers[tcId+field]) clearTimeout(timers[tcId+field]);
+  timers[tcId+field] = setTimeout(()=>{
+    // ✅ JANGAN sanitize newline, kirim value apa adanya
+    fetch(`/api/update_cell/${SID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tc_id:tcId, field, value: value})})
+    .then(r=>r.json()).then(d=>{ if(d.success){ saveBadge.style.opacity='1'; setTimeout(()=>saveBadge.style.opacity='0', 600); }});
+  }, 400);
+}
+document.getElementById('tc-body').addEventListener('input', e => { if(e.target.dataset.field) autoSave(e.target.closest('tr').dataset.id, e.target.dataset.field, e.target.innerText); });
+document.getElementById('tc-body').addEventListener('change', e => { if(e.target.dataset.field) autoSave(e.target.closest('tr').dataset.id, e.target.dataset.field, e.target.value); });
+
+// ===== METADATA PER-TICKET =====
+function toggleMetaEdit() { document.getElementById('meta-display').classList.toggle('d-none'); document.getElementById('meta-form').classList.toggle('d-none'); }
+function saveTicketMeta() {
+  const startDate = document.getElementById('f-start').value;
+  const endDate = document.getElementById('f-end').value;
+  
+  if (endDate && !startDate) {
+    alert('❌ Start Date harus diisi sebelum End Date');
+    document.getElementById('f-start').focus();
+    return;
+  }
+  
+  if (startDate && endDate && endDate < startDate) {
+    alert('❌ End Date tidak boleh sebelum Start Date');
+    document.getElementById('f-end').focus();
+    return;
+  }
+  
+  const p = { link: document.getElementById('f-link').value, testers: document.getElementById('f-testers').value, start_date: startDate, end_date: endDate };
+  fetch(`/api/update_scenario_meta/${SID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)})
+  .then(r=>r.json()).then(d => { if(d.success){
+    document.getElementById('m-link').innerText=p.link||'-'; document.getElementById('m-testers').innerText=p.testers||'-'; 
+    document.getElementById('m-start').innerText=p.start_date||'-'; document.getElementById('m-end').innerText=p.end_date||'-';
+    toggleMetaEdit(); alert('✅ Ticket Metadata updated!');
+  }});
+}
+
+// ===== VALIDASI START/END DATE =====
+document.addEventListener('DOMContentLoaded', () => {
+  const startDateInput = document.getElementById('f-start');
+  const endDateInput = document.getElementById('f-end');
+  
+  if (startDateInput && endDateInput) {
+    if (!startDateInput.value) {
+      endDateInput.disabled = true;
+      endDateInput.placeholder = 'Isi Start Date dulu';
+    }
+    
+    startDateInput.addEventListener('change', function() {
+      if (this.value) {
+        endDateInput.disabled = false;
+        endDateInput.placeholder = '';
+        endDateInput.min = this.value;
+      } else {
+        endDateInput.disabled = true;
+        endDateInput.value = '';
+        endDateInput.placeholder = 'Isi Start Date dulu';
+        endDateInput.min = '';
+      }
+    });
+    
+    endDateInput.addEventListener('change', function() {
+      if (startDateInput.value && this.value < startDateInput.value) {
+        alert('⚠️ End Date tidak boleh sebelum Start Date');
+        this.value = startDateInput.value;
+      }
+    });
+  }
+});
+
+// ===== SUMMARY & FILTER =====
+setInterval(()=>fetch(`/api/summary/${SID}`).then(r=>r.json()).then(d=>{['total','pass','fail','not_run','in_progress'].forEach(k=>{const el=document.getElementById('s-'+k);if(el)el.innerText=d[k]});const rEl=document.getElementById('s-rate');if(rEl)rEl.innerText=d.pass_rate+'%'}),30000);
+function filterTable(){const f=document.getElementById('statusFilter').value.toLowerCase();document.querySelectorAll('#tc-body tr').forEach(tr=>{const s=tr.querySelector('[data-field="status"]')?.value.toLowerCase();tr.style.display=!f||s===f?'':'none'})}
+
+// ===== CRUD ROWS =====
+function addRow(){fetch(`/api/add_row/${SID}`,{method:'POST'}).then(r=>r.json()).then(d=>insertRow(d.tc_id,{}))}
+
+function insertRow(tcId, data={}) {
+  const clean = (val) => {
+    if (val === null || val === undefined || val === 'None' || val === 'null') return '';
+    // Convert HTML entities back to newline jika ada
+    return val.replace(/&#10;/g, '\n').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  };
+
+  const tr = document.createElement('tr');
+  tr.dataset.id = tcId;
+  if(data.status === 'Fail') tr.className = 'row-fail';
+
+  const ml = (field, val) => `<textarea class="form-control form-control-sm p-1 multi-line-field" data-field="${field}" rows="1" oninput="autoResizeTextarea(this); autoSave('${tcId}', '${field}', this.value)">${clean(val)}</textarea>`;
+
+  tr.innerHTML = `<td><input type="checkbox" class="tc-checkbox" value="${tcId}" onchange="updateBulkBtn()"></td>
+    <td class="drag-handle" draggable="true">⋮</td>
+    <td class="fw-bold">${tcId}</td>
+    <td>${ml('test_case', data.test_case)}</td>
+    <td>${ml('test_criteria', data.test_criteria)}</td>
+    <td><input type="date" class="form-control form-control-sm p-1" data-field="test_date" value="${clean(data.test_date)}" onchange="autoSave('${tcId}', 'test_date', this.value)"></td>
+    <td>${ml('test_data', data.test_data)}</td>
+    <td>${ml('expected_result', data.expected_result)}</td>
+    <td>${ml('actual_result', data.actual_result)}</td>
+    <td><select class="form-select form-select-sm" data-field="status" onchange="autoSave('${tcId}', 'status', this.value)">
+      <option>Not Run</option><option>In Progress</option><option>Pass</option><option>Fail</option>
+    </select></td>
+    <td contenteditable="true" data-field="remarks" class="p-1" onblur="autoSave('${tcId}', 'remarks', this.innerText.replace(/[\\n\\r]+/g, ' '))">${clean(data.remarks)}</td>
+    <td class="text-center"><button class="btn btn-sm btn-light attach-btn" onclick="openAttachModal('${tcId}','img')">📷<span class="attach-badge d-none">0</span></button></td>
+    <td class="text-center"><button class="btn btn-sm btn-light attach-btn" onclick="openAttachModal('${tcId}','log')">📝<span class="attach-badge d-none">0</span></button></td>
+    <td><button class="btn btn-sm btn-outline-danger" onclick="deleteRow('${tcId}')">🗑️</button></td>`;
+
+  const sel = tr.querySelector('[data-field="status"]');
+  sel.value = (data.status && data.status !== 'None') ? data.status : 'Not Run';
+
+  document.getElementById('tc-body').append(tr);
+  tr.querySelectorAll('.multi-line-field').forEach(ta => autoResizeTextarea(ta));
+}
+
+
+// ✅ Helper: Auto-resize textarea saat mengetik/Enter
+function autoResizeTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight) + 'px';
+}
+
+// ✅ Helper: Cegah Enter di field single-line, izinkan Shift+Enter jika perlu
+function handleEnterKey(e, el) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    el.blur(); // Trigger save on Enter
+  }
+}
+
+
+function deleteRow(tcId){if(confirm('Hapus TC '+tcId+'?'))fetch(`/api/delete_tc/${SID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tc_id:tcId})}).then(()=>location.reload())}
+
+// ===== AI GENERATE =====
+function openAiModal(){new bootstrap.Modal(document.getElementById('aiModal')).show()}
+function runAi(){
+  const p=document.getElementById('ai-prompt').value.trim();if(!p)return;
+  const btn=document.querySelector('#aiModal .btn-primary');btn.disabled=true;btn.innerHTML='⏳...';
+  fetch(`/api/ai_generate/${SID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})})
+  .then(r=>r.json()).then(d=>{if(d.success){d.data.forEach(it=>insertRow('NEW',it));location.reload()}})
+  .finally(()=>{btn.disabled=false;btn.innerHTML='🤖 Generate'})
+}
+
+// ===== IMPORT EXCEL =====
+function handleImport() {
+  const fileInput = document.getElementById('importFile');
+  const statusEl = document.getElementById('importStatus');
+  if (!fileInput.files.length) { statusEl.innerHTML = '❌ Pilih file dulu.'; return; }
+  
+  const fd = new FormData(); 
+  fd.append('file', fileInput.files[0]);
+  
+  const btn = document.querySelector('#importModal .btn-primary');
+  btn.disabled = true; 
+  btn.innerHTML = '⏳ Processing...'; 
+  statusEl.innerHTML = '';
+  
+  fetch(`/api/import_excel/${SID}`, {method:'POST', body:fd})
+  .then(r => r.json())
+  .then(d => {
+    if(d.success) {
+      statusEl.innerHTML = `<span class="text-success">✅ Berhasil import ${d.imported} test case!</span>`;
+      setTimeout(()=> location.reload(), 1200);
+    } else {
+      statusEl.innerHTML = `<span class="text-danger">❌ ${d.error}</span>`;
+    }
+  })
+  .catch(e => { 
+    statusEl.innerHTML = `<span class="text-danger">❌ Network error: ${e}</span>`; 
+  })
+  .finally(()=>{ 
+    btn.disabled=false; 
+    btn.innerHTML='📤 Import'; 
+  });
+}
+
+// ===== ATTACHMENT MANAGER =====
+function openAttachModal(tcId, type) {
+  document.getElementById('attach-tc-id').value = tcId; document.getElementById('attach-type').value = type; currentAttachType = type;
+  const title = document.getElementById('attachTitle');
+  if(type === 'img') { 
+    title.innerText = `📷 Screenshots for ${tcId}`; 
+    document.getElementById('img-upload-section').classList.remove('d-none'); 
+    document.getElementById('log-input-section').classList.add('d-none'); 
+    document.getElementById('attach-file-input').value = ''; 
+  } else { 
+    title.innerText = `📝 Logs for ${tcId}`; 
+    document.getElementById('img-upload-section').classList.add('d-none'); 
+    document.getElementById('log-input-section').classList.remove('d-none'); 
+    document.getElementById('log-text-input').value = ''; 
+  }
+  if(!attachModalInst) attachModalInst = new bootstrap.Modal(document.getElementById('attachModal'));
+  attachModalInst.show(); logContentCache = {}; loadAttachments(tcId, type);
+}
+
+function loadAttachments(tcId, type) {
+  return new Promise((resolve, reject) => { // ✅ Return Promise
+    const list = document.getElementById('attach-list'); 
+    list.innerHTML = '<div class="text-center small text-muted py-3">Loading...</div>';
+    
+    fetch(`/api/get_attachments/${SID}/${tcId}`)
+    .then(r => r.json())
+    .then(data => {
+      list.innerHTML = ''; 
+      const items = type === 'img' ? data.screenshots : data.logs; 
+      list.dataset.tc = tcId; 
+      list.dataset.type = type;
+      
+      if(!items || items.length === 0) { 
+        list.innerHTML = '<div class="text-center small text-muted py-3">Empty.</div>'; 
+        updateBadge(tcId, type, 0); 
+        resolve(); // ✅ Resolve promise
+        return; 
+      }
+      
+      updateBadge(tcId, type, items.length);
+      items.forEach((item, idx) => {
+        const div = document.createElement('div'); 
+        div.className = 'attach-item'; 
+        div.dataset.id = item.id; 
+        div.draggable = true;
+        
+        if(type === 'img') {
+          div.innerHTML = `<div class="d-flex align-items-center gap-3 flex-grow-1">
+            <img src="${item.url}?t=${Date.now()}" class="attach-thumb" onclick="showFullImg('${item.url}')">
+            <div class="small fw-bold text-truncate" style="max-width:150px" title="${item.name}">${item.name}</div>
+            <input type="text" class="form-control form-control-sm ms-2" style="width:120px" value="${item.name}" placeholder="Rename..." onchange="renameAttachment(${item.id},'img',this.value)">
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="showFullImg('${item.url}')">👁️</button>
+            <button class="btn btn-outline-danger" onclick="deleteAttachment(${item.id}, 'img')">🗑️</button>
+          </div>`;
+        } else {
+          const short = item.content.length > 40 ? item.content.substring(0, 40) + '...' : item.content;
+          div.innerHTML = `<div class="d-flex align-items-center gap-3 flex-grow-1">
+            <span class="badge bg-secondary">LOG</span>
+            <div class="small text-muted text-truncate" style="max-width:150px" title="${item.name}">${item.name}</div>
+            <input type="text" class="form-control form-control-sm ms-2" style="width:120px" value="${item.name}" placeholder="Rename..." onchange="renameAttachment(${item.id},'log',this.value)">
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="previewLogCached('${tcId}_log_${idx}')">👁️</button>
+            <button class="btn btn-outline-danger" onclick="deleteAttachment(${item.id}, 'log')">🗑️</button>
+          </div>`;
+          logContentCache[`${tcId}_log_${idx}`] = item.content;
+        }
+        list.appendChild(div);
+      });
+      setupAttachDrag(list);
+      resolve(); // ✅ Resolve promise setelah selesai
+    })
+    .catch(err => {
+      console.error('Error loading attachments:', err);
+      reject(err); // ✅ Reject promise jika error
+    });
+  });
+}
+
+function setupAttachDrag(list) {
+  let draggedItem = null;
+  list.querySelectorAll('.attach-item').forEach(item => {
+    item.addEventListener('dragstart', () => { draggedItem = item; item.classList.add('dragging'); });
+    item.addEventListener('dragend', () => { item.classList.remove('dragging'); saveAttachOrder(list); });
+  });
+  list.addEventListener('dragover', e => { e.preventDefault(); const after = [...list.querySelectorAll('.attach-item:not(.dragging)')].find(r => r.getBoundingClientRect().y > e.clientY); if(draggedItem && after) list.insertBefore(draggedItem, after); });
+}
+
+function saveAttachOrder(list) {
+  const tcId = list.dataset.tc, type = list.dataset.type, order = [...list.querySelectorAll('.attach-item')].map(i => i.dataset.id);
+  if(order.length > 0) fetch(`/api/reorder_attachments/${SID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tc_id:tcId, type, order})});
+}
+
+function renameAttachment(attId, type, newName) {
+  fetch(`/api/rename_attachment/${SID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:attId, type, name:newName})});
+}
+
+function updateBadge(tcId, type, count) { const key = type === 'img' ? 'img' : 'log'; const badge = document.getElementById(`badge-${key}-${tcId}`); if(count > 0) { badge.innerText = count; badge.classList.remove('d-none'); } else { badge.classList.add('d-none'); } }
+
+function handleAttachUpload() {
+  const tcId = document.getElementById('attach-tc-id').value; 
+  const type = document.getElementById('attach-type').value;
+  
+  if(type === 'img') {
+    const fileInput = document.getElementById('attach-file-input');
+    const file = fileInput.files[0]; 
+    
+    if(!file) {
+      alert('⚠️ Pilih gambar terlebih dahulu!');
+      return;
+    }
+    
+    if(file.size > 10 * 1024 * 1024) {
+      alert('⚠️ Ukuran file terlalu besar! Maksimal 10MB.');
+      return;
+    }
+    
+    const fd = new FormData(); 
+    fd.append('file', file); 
+    fd.append('tc_id', tcId);
+    
+    // Tampilkan loading
+    const btn = document.querySelector('#attachModal button[onclick="handleAttachUpload()"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Uploading...';
+    
+    // Tampilkan status loading di UI
+    const listDiv = document.getElementById('attach-list');
+    const originalListHtml = listDiv.innerHTML;
+    listDiv.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2 text-muted small">Uploading image...</p></div>';
+    
+    fetch(`/api/upload_screenshot/${SID}`, {
+      method: 'POST', 
+      body: fd
+    })
+    .then(r => {
+      if (!r.ok) {
+        throw new Error(`HTTP error! status: ${r.status}`);
+      }
+      return r.json();
+    })
+    .then(d => { 
+      console.log('Upload response:', d); // Debug log
+      
+      if(d.success) {
+        // Reset input file
+        fileInput.value = '';
+        
+        // FORCE RELOAD attachments
+        console.log('Reloading attachments for TC:', tcId);
+        loadAttachments(tcId, 'img').then(() => {
+          console.log('Attachments reloaded successfully');
+          // Tampilkan pesan sukses kecil
+          const successMsg = document.createElement('div');
+          successMsg.className = 'alert alert-success alert-dismissible fade show py-2 small';
+          successMsg.innerHTML = '✅ Upload berhasil! <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+          listDiv.insertBefore(successMsg, listDiv.firstChild);
+          
+          // Auto hide success message after 3 seconds
+          setTimeout(() => {
+            successMsg.remove();
+          }, 3000);
+        });
+        
+      } else {
+        alert('❌ Gagal upload: ' + (d.error || 'Unknown error'));
+        // Restore list
+        listDiv.innerHTML = originalListHtml;
+      }
+    })
+    .catch(err => {
+      console.error('Upload error:', err);
+      alert('❌ Error koneksi: ' + err.message);
+      // Restore list
+      listDiv.innerHTML = originalListHtml;
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    });
+    
+  } else {
+    // Log upload (kode lama tetap sama)
+    const text = document.getElementById('log-text-input').value.trim(); 
+    if(!text) return alert('Isi log dulu');
+    const name = prompt('Nama log (opsional):', `Log_${Date.now()}`) || '';
+    fetch(`/api/save_log/${SID}`, {
+      method:'POST', 
+      headers:{'Content-Type':'application/json'}, 
+      body:JSON.stringify({tc_id:tcId, content:text, custom_name:name})
+    })
+    .then(r=>r.json())
+    .then(d => { 
+      if(d.success) { 
+        loadAttachments(tcId, 'log'); 
+        document.getElementById('log-text-input').value=''; 
+      } else {
+        alert('❌ Gagal save log: ' + d.error);
+      }
+    });
+  }
+}
+
+
+function deleteAttachment(id, type) { if(!confirm('Hapus permanen?')) return; const tcId = document.getElementById('attach-tc-id').value; const ep = type === 'img' ? 'delete_screenshot' : 'delete_log'; fetch(`/api/${ep}/${SID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}).then(r=>r.json()).then(d => { if(d.success) loadAttachments(tcId, type); }); }
+function showFullImg(url) { document.getElementById('full-img').src = url; new bootstrap.Modal(document.getElementById('fullImgModal')).show(); }
+function previewLogCached(key) { const c = logContentCache[key]; if(!c) return alert('Log kosong'); document.getElementById('log-preview-content').textContent = c; new bootstrap.Modal(document.getElementById('logPreviewModal')).show(); }
+
+// ===== DRAG & DROP TC =====
+const tbody=document.getElementById('tc-body');
+tbody.addEventListener('dragover',e=>{e.preventDefault();const after=[...tbody.querySelectorAll('tr:not(.dragging)')].find(r=>r.getBoundingClientRect().y>e.clientY);const drag=tbody.querySelector('.dragging');if(drag&&after)tbody.insertBefore(drag,after)});
+tbody.addEventListener('drop',()=>{const order=[...tbody.querySelectorAll('tr')].map(r=>r.dataset.id);fetch(`/api/reorder_tc/${SID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order})}).then(()=>location.reload())});
+document.addEventListener('dragstart',e=>{if(e.target.classList.contains('drag-handle'))e.target.parentElement.classList.add('dragging')});
+document.addEventListener('dragend',e=>{if(e.target.classList.contains('drag-handle'))e.target.parentElement.classList.remove('dragging')});
+
+// ===== PASTE SCREENSHOT =====
+document.addEventListener('paste', e => { for(let item of e.clipboardData.items) { if(item.type && item.type.indexOf('image') !== -1){ const tc = prompt('Paste screenshot ke TC ID:', 'TC-001'); if(tc){ const fd=new FormData(); fd.append('file',item.getAsFile(),'paste.png'); fd.append('tc_id',tc); fetch(`/api/upload_screenshot/${SID}`,{method:'POST',body:fd}).then(()=>location.reload()); } break; } } });
+
+// ===== BULK DELETE LOGIC =====
+function toggleSelectAll(source) {
+  const checkboxes = document.querySelectorAll('.tc-checkbox');
+  checkboxes.forEach(cb => cb.checked = source.checked);
+  updateBulkBtn();
+}
+
+function updateBulkBtn() {
+  const checked = document.querySelectorAll('.tc-checkbox:checked');
+  const btn = document.getElementById('btnBulkDelete');
+  const count = document.getElementById('countSelected');
+  
+  if (checked.length > 0) {
+    btn.style.display = 'inline-block';
+    count.innerText = checked.length;
+  } else {
+    btn.style.display = 'none';
+    // Reset select all checkbox jika kosong
+    document.getElementById('selectAllTc').checked = false;
+  }
+}
+
+function bulkDeleteSelected() {
+  const checked = document.querySelectorAll('.tc-checkbox:checked');
+  const tcIds = Array.from(checked).map(cb => cb.value);
+  
+  if (tcIds.length === 0) return;
+  
+  if (!confirm(`⚠️ Hapus ${tcIds.length} Test Case terpilih?\n\nIDs: ${tcIds.join(', ')}\n\nTindakan ini tidak dapat dibatalkan!`)) {
+    return;
+  }
+  
+  const btn = document.getElementById('btnBulkDelete');
+  btn.disabled = true; btn.innerText = ' Menghapus...';
+  
+  fetch(`/api/bulk_delete_tc/${SID}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({tc_ids: tcIds})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(`✅ Berhasil menghapus ${d.deleted} test case.`);
+      location.reload();
+    } else {
+      alert('❌ Error: ' + d.error);
+      btn.disabled = false; btn.innerHTML = `🗑️ Hapus Terpilih (<span id="countSelected">${tcIds.length}</span>)`;
+    }
+  })
+  .catch(e => {
+    alert('❌ Network error');
+    btn.disabled = false;
+  });
+}
+
+  // ==========================================
+  // FITUR: COPY TEST CASE (Ctrl + D)
+  // ==========================================
+  
+  // 1. Fungsi untuk menandai baris yang diklik (Highlight)
+  document.getElementById('tc-body').addEventListener('click', function(e) {
+    // Cari elemen <tr> terdekat dari yang diklik
+    const row = e.target.closest('tr');
+    if (!row || !row.dataset.id) return;
+
+    // Hapus highlight dari semua baris
+    document.querySelectorAll('#tc-body tr').forEach(r => {
+      r.classList.remove('table-primary');
+      r.style.cursor = 'default';
+    });
+
+    // Tambahkan highlight biru pada baris yang diklik
+    row.classList.add('table-primary');
+    row.style.cursor = 'pointer';
+  });
+
+  // 2. Fungsi untuk menyalin baris (Dipanggil saat Ctrl+D ditekan)
+  function copySelectedRow() {
+    // Cari baris yang sedang di-highlight (biru)
+    const selectedRow = document.querySelector('#tc-body tr.table-primary');
+    
+    if (!selectedRow) {
+      alert('⚠️ Klik salah satu baris Test Case terlebih dahulu untuk memilihnya!');
+      return;
+    }
+
+    const sourceTcId = selectedRow.dataset.id;
+
+    // Kirim request ke backend
+    fetch(`/api/copy_tc/${SID}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_tc_id: sourceTcId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        // Tampilkan notifikasi kecil di pojok (seperti saat auto-save)
+        const badge = document.getElementById('save-indicator');
+        if (badge) {
+          badge.innerText = `✅ Copied to ${data.new_tc_id}`;
+          badge.style.opacity = '1';
+          setTimeout(() => { badge.style.opacity = '0'; }, 2000);
+        }
+        // Reload halaman agar urutan nomor TC rapi
+        setTimeout(() => location.reload(), 500);
+      } else {
+        alert('❌ Gagal menyalin: ' + data.error);
+      }
+    })
+    .catch(err => alert('❌ Error koneksi: ' + err));
+  }
+
+  // 3. Event Listener untuk menangkap tombol Ctrl + D (atau Cmd + D di Mac)
+  document.addEventListener('keydown', function(e) {
+    // Cek apakah Ctrl (Windows) atau Meta (Mac) + tombol D ditekan
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+      e.preventDefault(); // PENTING: Mencegah browser membuka menu "Bookmark Page"
+      copySelectedRow();
+    }
+  });
+
+</script>
+</body>
+</html>

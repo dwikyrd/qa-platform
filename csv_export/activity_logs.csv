@@ -1,0 +1,185 @@
+id,user_id,username,action,target_type,target_id,details,ip_address,created_at
+1,1,admin,login,,,,127.0.0.1,2026-06-02 07:23:48
+2,1,admin,skip_password_change,,,,127.0.0.1,2026-06-02 07:32:56
+3,1,admin,logout,,,,127.0.0.1,2026-06-02 07:33:02
+4,1,admin,login,,,,127.0.0.1,2026-06-02 07:33:08
+5,1,admin,logout,,,,127.0.0.1,2026-06-02 07:33:23
+6,1,admin,login,,,,127.0.0.1,2026-06-02 07:40:00
+7,1,admin,change_password,,,,127.0.0.1,2026-06-02 07:40:54
+8,1,admin,logout,,,,127.0.0.1,2026-06-02 07:41:01
+9,1,admin,login,,,,127.0.0.1,2026-06-02 07:41:05
+10,1,admin,logout,,,,127.0.0.1,2026-06-02 07:41:16
+11,1,admin,login,,,,127.0.0.1,2026-06-02 07:42:05
+12,1,admin,skip_password_change,,,,127.0.0.1,2026-06-02 07:42:31
+13,1,admin,logout,,,,127.0.0.1,2026-06-02 07:43:31
+14,1,admin,login,,,,127.0.0.1,2026-06-02 07:43:44
+15,1,admin,change_password,,,,127.0.0.1,2026-06-02 07:44:10
+16,1,admin,logout,,,,127.0.0.1,2026-06-02 07:44:24
+17,1,admin,login,,,,127.0.0.1,2026-06-02 07:44:29
+18,1,admin,create_user,user,2,Created user: dwiky,127.0.0.1,2026-06-02 07:56:51
+19,1,admin,delete_user,user,2,Deleted user: dwiky,127.0.0.1,2026-06-02 07:59:58
+20,1,admin,delete_user,user,2,Deleted user: unknown,127.0.0.1,2026-06-02 08:00:02
+21,1,admin,logout,,,,127.0.0.1,2026-06-02 08:00:22
+22,1,admin,login,,,,127.0.0.1,2026-06-02 08:00:38
+23,1,admin,toggle_user_status,user,2,,127.0.0.1,2026-06-02 08:00:50
+24,1,admin,logout,,,,127.0.0.1,2026-06-02 08:01:29
+25,2,dwiky,login,,,,127.0.0.1,2026-06-02 08:01:37
+26,2,dwiky,change_password,,,,127.0.0.1,2026-06-02 08:01:52
+27,2,dwiky,logout,,,,127.0.0.1,2026-06-02 08:02:18
+28,1,admin,login,,,,127.0.0.1,2026-06-02 08:02:24
+29,1,admin,logout,,,,127.0.0.1,2026-06-02 08:33:12
+30,2,dwiky,login,,,,127.0.0.1,2026-06-02 08:33:22
+31,2,dwiky,logout,,,,127.0.0.1,2026-06-02 08:33:27
+32,1,admin,login,,,,127.0.0.1,2026-06-02 08:33:34
+33,1,admin,toggle_user_status,user,2,,127.0.0.1,2026-06-02 08:33:39
+34,1,admin,toggle_user_status,user,2,,127.0.0.1,2026-06-02 08:33:40
+35,1,admin,create_user,user,3,Created user: elang,127.0.0.1,2026-06-02 08:33:54
+36,1,admin,logout,,,,127.0.0.1,2026-06-02 08:33:59
+37,3,elang,login,,,,127.0.0.1,2026-06-02 08:34:03
+38,3,elang,skip_password_change,,,,127.0.0.1,2026-06-02 08:34:21
+39,3,elang,logout,,,,127.0.0.1,2026-06-02 08:34:27
+40,1,admin,login,,,,127.0.0.1,2026-06-02 08:34:38
+41,1,admin,logout,,,,127.0.0.1,2026-06-02 08:39:22
+42,1,admin,login,,,,127.0.0.1,2026-06-02 08:40:35
+43,1,admin,rename_ticket,scenario,8,"Renamed to: ""ticket 2""",127.0.0.1,2026-06-02 09:25:15
+44,1,admin,import_excel,scenario,14,Imported 5 test cases,127.0.0.1,2026-06-02 09:58:32
+45,1,admin,soft_delete_ticket,scenario,14,,127.0.0.1,2026-06-02 09:58:37
+46,1,admin,soft_delete_ticket,scenario,14,,127.0.0.1,2026-06-02 09:58:38
+47,1,admin,soft_delete_ticket,scenario,14,,127.0.0.1,2026-06-02 09:58:39
+48,1,admin,soft_delete_ticket,scenario,14,,127.0.0.1,2026-06-02 09:58:39
+49,1,admin,soft_delete_ticket,scenario,14,,127.0.0.1,2026-06-02 09:58:40
+50,1,admin,import_excel,scenario,14,Imported 96 test cases,127.0.0.1,2026-06-02 09:58:47
+51,1,admin,archive_ticket,scenario,14,,127.0.0.1,2026-06-02 10:01:11
+52,1,admin,export_excel,scenario,8,,127.0.0.1,2026-06-02 10:03:03
+53,1,admin,logout,,,,127.0.0.1,2026-06-02 10:07:24
+54,1,admin,login,,,,127.0.0.1,2026-06-02 10:07:44
+55,1,admin,logout,,,,127.0.0.1,2026-06-02 10:16:33
+56,1,admin,login,,,,127.0.0.1,2026-06-02 10:25:49
+57,1,admin,update_project,project,5,Updated project info,127.0.0.1,2026-06-02 10:26:06
+58,1,admin,login,,,,127.0.0.1,2026-06-03 03:34:09
+59,1,admin,export_excel,scenario,8,,127.0.0.1,2026-06-03 03:37:12
+60,1,admin,import_excel,scenario,12,Imported 96 test cases,127.0.0.1,2026-06-03 03:42:45
+61,1,admin,logout,,,,127.0.0.1,2026-06-03 03:44:00
+62,1,admin,login,,,,127.0.0.1,2026-06-03 03:44:06
+63,1,admin,bulk_delete_tc,scenario,8,"Bulk deleted 3 TCs: TC-007, TC-008, TC-009...",127.0.0.1,2026-06-03 04:09:54
+64,1,admin,logout,,,,127.0.0.1,2026-06-03 04:12:12
+65,1,admin,login,,,,127.0.0.1,2026-06-03 04:12:21
+66,1,admin,copy_tc,test_case,TC-009,Copied from TC-008,127.0.0.1,2026-06-03 04:14:57
+67,1,admin,copy_tc,test_case,TC-010,Copied from TC-007,127.0.0.1,2026-06-03 04:15:07
+68,1,admin,bulk_delete_tc,scenario,8,"Bulk deleted 3 TCs: TC-008, TC-009, TC-010...",127.0.0.1,2026-06-03 04:17:00
+69,1,admin,copy_tc,test_case,TC-008,Copied from TC-007,127.0.0.1,2026-06-03 04:17:10
+70,1,admin,copy_tc,test_case,TC-009,Copied from TC-005,127.0.0.1,2026-06-03 04:17:21
+71,1,admin,copy_tc,test_case,TC-010,Copied from TC-009,127.0.0.1,2026-06-03 04:17:31
+72,1,admin,create_ticket,scenario,17,"Created ticket: ""test tambah ticket"" in Project #1",127.0.0.1,2026-06-03 04:22:58
+73,1,admin,archive_ticket,scenario,16,,127.0.0.1,2026-06-03 04:24:43
+74,1,admin,archive_ticket,scenario,15,,127.0.0.1,2026-06-03 04:24:47
+75,1,admin,bulk_delete_tc,scenario,17,"Bulk deleted 3 TCs: TC-001, TC-002, TC-003...",127.0.0.1,2026-06-03 04:25:04
+76,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:38:59
+77,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:39:01
+78,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:39:13
+79,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:39:16
+80,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:39:27
+81,1,admin,upload_screenshot,test_case,TC-002,,127.0.0.1,2026-06-03 04:39:45
+82,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:47:58
+83,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:47:59
+84,1,admin,export_excel,scenario,17,,127.0.0.1,2026-06-03 04:48:14
+85,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:48:36
+86,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:48:37
+87,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:49:03
+88,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:50:35
+89,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:50:36
+90,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:51:12
+91,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-03 04:54:23
+92,1,admin,login,,,,127.0.0.1,2026-06-04 03:02:21
+93,1,admin,login,,,,127.0.0.1,2026-06-04 07:18:01
+94,1,admin,login,,,,127.0.0.1,2026-06-04 07:20:07
+95,1,admin,login,,,,127.0.0.1,2026-06-04 07:30:04
+96,1,admin,create_project,project,,"Created project: ""a""",127.0.0.1,2026-06-04 07:30:15
+97,1,admin,login,,,,127.0.0.1,2026-06-04 07:31:41
+98,1,admin,login,,,,127.0.0.1,2026-06-04 07:40:20
+99,1,admin,logout,,,,127.0.0.1,2026-06-04 07:43:51
+100,1,admin,logout,,,,127.0.0.1,2026-06-04 07:44:10
+101,1,admin,logout,,,,127.0.0.1,2026-06-04 07:44:55
+102,1,admin,logout,,,,127.0.0.1,2026-06-04 07:47:00
+103,1,admin,logout,,,,127.0.0.1,2026-06-04 07:47:00
+104,1,admin,login,,,,127.0.0.1,2026-06-04 07:50:10
+105,1,admin,logout,,,,127.0.0.1,2026-06-04 08:16:59
+106,1,admin,logout,,,,127.0.0.1,2026-06-04 08:16:59
+107,1,admin,login,,,,127.0.0.1,2026-06-04 08:23:19
+108,1,admin,create_ticket,scenario,18,"Created ticket: ""Test tambah ticket"" in Project #7",127.0.0.1,2026-06-04 08:54:39
+109,1,admin,archive_ticket,scenario,18,,127.0.0.1,2026-06-04 08:54:49
+110,1,admin,create_ticket,scenario,19,"Created ticket: ""oke"" in Project #7",127.0.0.1,2026-06-04 09:02:34
+111,1,admin,archive_ticket,scenario,19,,127.0.0.1,2026-06-04 09:02:38
+112,1,admin,create_ticket,scenario,20,"Created ticket: ""oke"" in Project #7",127.0.0.1,2026-06-04 09:03:25
+113,1,admin,archive_ticket,scenario,20,,127.0.0.1,2026-06-04 09:03:29
+114,1,admin,create_ticket,scenario,21,"Created ticket: ""ok"" in Project #7",127.0.0.1,2026-06-04 09:12:59
+115,1,admin,archive_ticket,scenario,21,,127.0.0.1,2026-06-04 09:13:02
+116,1,admin,create_ticket,scenario,22,"Created ticket: ""ok"" in Project #7",127.0.0.1,2026-06-04 09:14:03
+117,1,admin,rename_ticket,scenario,22,"Renamed to: ""dan""",127.0.0.1,2026-06-04 09:14:11
+118,1,admin,rename_ticket,scenario,22,"Renamed to: ""apalah""",127.0.0.1,2026-06-04 09:14:18
+119,1,admin,rename_ticket,scenario,22,"Renamed to: ""coba""",127.0.0.1,2026-06-04 09:14:22
+120,1,admin,rename_ticket,scenario,10,"Renamed to: ""test""",127.0.0.1,2026-06-04 09:14:31
+121,1,admin,archive_ticket,scenario,22,,127.0.0.1,2026-06-04 09:14:34
+122,1,admin,update_project,project,1,Updated project info,127.0.0.1,2026-06-04 09:16:22
+123,1,admin,update_project,project,7,Updated project info,127.0.0.1,2026-06-04 09:16:47
+124,1,admin,hard_delete_ticket,scenario,18,,127.0.0.1,2026-06-04 09:19:58
+125,1,admin,logout,,,,127.0.0.1,2026-06-04 09:20:30
+126,1,admin,logout,,,,127.0.0.1,2026-06-04 09:20:30
+127,1,admin,login,,,,127.0.0.1,2026-06-04 09:21:25
+128,1,admin,update_project,project,1,Updated project info,127.0.0.1,2026-06-04 09:22:22
+129,1,admin,update_project,project,5,Updated project info,127.0.0.1,2026-06-04 09:23:10
+130,1,admin,update_project,project,6,Updated project info,127.0.0.1,2026-06-04 09:23:39
+131,1,admin,login,,,,127.0.0.1,2026-06-04 09:33:46
+132,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-04 09:38:53
+133,1,admin,copy_tc,test_case,TC-006,Copied from TC-001,127.0.0.1,2026-06-04 09:39:10
+134,1,admin,copy_tc,test_case,TC-007,Copied from TC-006,127.0.0.1,2026-06-04 09:39:32
+135,1,admin,copy_tc,test_case,TC-008,Copied from TC-007,127.0.0.1,2026-06-04 09:39:34
+136,1,admin,soft_delete_ticket,scenario,10,,127.0.0.1,2026-06-04 09:39:41
+137,1,admin,bulk_delete_tc,scenario,10,Bulk deleted 1 TCs: TC-005...,127.0.0.1,2026-06-04 09:39:51
+138,1,admin,bulk_delete_tc,scenario,10,"Bulk deleted 3 TCs: TC-003, TC-002, TC-004...",127.0.0.1,2026-06-04 09:40:31
+139,1,admin,import_excel,scenario,10,Imported 2 test cases,127.0.0.1,2026-06-04 09:44:47
+140,1,admin,bulk_delete_tc,scenario,10,"Bulk deleted 2 TCs: TC-005, TC-006...",127.0.0.1,2026-06-04 09:51:24
+141,1,admin,bulk_delete_tc,scenario,10,Bulk deleted 1 TCs: TC-006...,127.0.0.1,2026-06-04 09:51:51
+142,1,admin,bulk_delete_tc,scenario,10,Bulk deleted 1 TCs: TC-007...,127.0.0.1,2026-06-04 09:52:12
+143,1,admin,import_excel,scenario,10,Imported 96 test cases,127.0.0.1,2026-06-04 09:54:14
+144,1,admin,bulk_delete_tc,scenario,10,"Bulk deleted 102 TCs: TC-001, TC-002, TC-003, TC-004, TC-005...",127.0.0.1,2026-06-04 09:54:31
+145,1,admin,import_excel,scenario,10,Imported 96 test cases,127.0.0.1,2026-06-04 09:54:38
+146,1,admin,export_excel,scenario,8,,127.0.0.1,2026-06-04 09:55:30
+147,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-04 09:59:14
+148,1,admin,export_excel,scenario,10,,127.0.0.1,2026-06-04 10:17:19
+149,1,admin,export_excel,scenario,10,,127.0.0.1,2026-06-04 10:23:12
+150,1,admin,export_excel,scenario,10,,127.0.0.1,2026-06-04 10:24:07
+151,1,admin,upload_screenshot,test_case,TC-001,,127.0.0.1,2026-06-04 10:26:37
+152,1,admin,create_ticket,scenario,23,"Created ticket: ""test ctrl d"" in Project #7",127.0.0.1,2026-06-04 10:28:27
+153,1,admin,copy_tc,test_case,TC-002,Copied from TC-001,127.0.0.1,2026-06-04 10:28:54
+154,1,admin,copy_tc,test_case,TC-003,Copied from TC-002,127.0.0.1,2026-06-04 10:28:56
+155,1,admin,copy_tc,test_case,TC-004,Copied from TC-003,127.0.0.1,2026-06-04 10:28:58
+156,1,admin,soft_delete_ticket,scenario,23,,127.0.0.1,2026-06-04 10:29:06
+157,1,admin,rename_ticket,scenario,23,"Renamed to: ""Create New Ticket""",127.0.0.1,2026-06-04 10:29:30
+158,1,admin,logout,,,,127.0.0.1,2026-06-04 10:30:33
+159,1,admin,logout,,,,127.0.0.1,2026-06-04 10:30:33
+160,1,admin,login,,,,127.0.0.1,2026-06-04 10:30:42
+161,1,admin,create_ticket,scenario,24,"Created ticket: ""tambah ticket 1"" in Project #5",127.0.0.1,2026-06-04 10:33:13
+162,1,admin,create_ticket,scenario,25,"Created ticket: ""tambah ticket 2"" in Project #5",127.0.0.1,2026-06-04 10:33:18
+163,1,admin,logout,,,,127.0.0.1,2026-06-04 10:33:21
+164,1,admin,logout,,,,127.0.0.1,2026-06-04 10:33:21
+165,1,admin,login,,,,127.0.0.1,2026-06-04 10:33:38
+166,1,admin,login,,,,127.0.0.1,2026-06-04 10:33:40
+167,1,admin,rename_ticket,scenario,8,"Renamed to: ""ticket 2""",127.0.0.1,2026-06-04 10:35:07
+168,1,admin,import_excel,scenario,25,Imported 96 test cases,127.0.0.1,2026-06-04 10:35:32
+169,1,admin,bulk_delete_tc,scenario,10,"Bulk deleted 94 TCs: TC-003, TC-004, TC-005, TC-006, TC-007...",127.0.0.1,2026-06-04 10:36:01
+170,1,admin,logout,,,,127.0.0.1,2026-06-04 10:49:26
+171,1,admin,logout,,,,127.0.0.1,2026-06-04 10:49:26
+172,1,admin,login,,,,127.0.0.1,2026-06-04 10:49:34
+173,1,admin,delete_user,user,2,Deleted user: dwiky,127.0.0.1,2026-06-04 10:50:25
+174,1,admin,create_user,user,4,Created user: dwikyr,127.0.0.1,2026-06-04 10:50:41
+175,4,dwikyr,login,,,,127.0.0.1,2026-06-04 10:50:48
+176,4,dwikyr,logout,,,,127.0.0.1,2026-06-04 10:54:09
+177,4,dwikyr,logout,,,,127.0.0.1,2026-06-04 10:54:09
+178,1,admin,login,,,,127.0.0.1,2026-06-04 10:54:16
+179,1,admin,logout,,,,127.0.0.1,2026-06-04 10:56:00
+180,1,admin,logout,,,,127.0.0.1,2026-06-04 10:56:00
+181,1,admin,login,,,,127.0.0.1,2026-06-04 10:56:06
+182,1,admin,logout,,,,127.0.0.1,2026-06-05 02:26:38
+183,1,admin,logout,,,,127.0.0.1,2026-06-05 02:26:38
+184,1,admin,login,,,,127.0.0.1,2026-06-05 02:27:15

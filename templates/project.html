@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>📋 {{ project.name }}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f8f9fa;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+
+      /* Stats Cards */
+      .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s;
+      }
+      .stat-card:hover {
+        transform: translateY(-3px);
+      }
+      .icon-box {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      /* Scrollable Ticket Area */
+      .ticket-scroll-container {
+        max-height: 60vh;
+        overflow-y: auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
+      .ticket-scroll-container::-webkit-scrollbar {
+        width: 6px;
+      }
+      .ticket-scroll-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+
+      /* ✅ UPDATED: Section Headers (Extra Bold & High Contrast) */
+      .section-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 14px 20px;
+        font-weight: 800; /* Extra Bold */
+        font-size: 1.05rem; /* Sedikit lebih besar */
+        letter-spacing: 0.6px; /* Jarak huruf lebih rapi */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 3px solid;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .section-header:hover {
+        filter: brightness(0.97);
+      }
+
+      /* Warna teks lebih gelap & kontras agar mudah dibaca */
+      .section-header.in-progress {
+        background: #fffbeb;
+        color: #b45309;
+        border-bottom-color: #f59e0b;
+      }
+      .section-header.not-run {
+        background: #f8fafc;
+        color: #334155;
+        border-bottom-color: #94a3b8;
+      }
+      .section-header.done {
+        background: #ecfdf5;
+        color: #047857;
+        border-bottom-color: #10b981;
+      }
+
+      /* Collapse Animation */
+      .collapse-arrow {
+        transition: transform 0.2s ease;
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
+      .section-header.collapsed .collapse-arrow {
+        transform: rotate(-90deg);
+      }
+      .section-content {
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+      .section-content.collapsed {
+        max-height: 0 !important;
+      }
+      .status-section:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Ticket Items */
+      .ticket-item {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.15s;
+      }
+      .ticket-item:hover {
+        background: #f8fafc;
+      }
+      .ticket-item.done-ticket {
+        background: #f0fdf4;
+        opacity: 0.85;
+      }
+      .ticket-item.done-ticket:hover {
+        opacity: 1;
+      }
+
+      /* Inline Edit & Badges */
+      .inline-title {
+        border-bottom: 1px dashed transparent;
+        cursor: text;
+        outline: none;
+        padding: 0 4px;
+        border-radius: 4px;
+      }
+      .inline-title:hover,
+      .inline-title:focus {
+        border-bottom-color: #6c757d;
+        background: #f1f5f9;
+      }
+      .badge-status {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+
+      /* Timeline */
+      .timeline-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #64748b;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      .timeline-table td {
+        vertical-align: middle;
+        font-size: 0.85rem;
+      }
+    </style>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">📂 QA Dashboard</a>
+        <div class="d-flex align-items-center">
+          {% if current_user %}
+          <div class="dropdown">
+            <button
+              class="btn btn-light btn-sm dropdown-toggle d-flex align-items-center gap-2"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
+              <div class="user-avatar">
+                {{ current_user.username[0] | upper }}
+              </div>
+              <div class="text-start lh-1">
+                <div class="small fw-bold text-dark">
+                  {{ current_user.username }}
+                </div>
+                <div class="small text-muted" style="font-size: 0.7em">
+                  {{ current_user.role | capitalize }}
+                </div>
+              </div>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+              <li class="px-3 py-2">
+                <small class="text-muted">Masuk sebagai</small><br />
+                <strong
+                  >{{ current_user.full_name or current_user.username }}</strong
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="/change-password"
+                  >🔑 Ubah Password</a
+                >
+              </li>
+              {% if current_user.role == 'admin' %}
+              <li><a class="dropdown-item" href="/admin">⚙️ Admin Panel</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item text-danger" href="/logout"
+                  >🚪 Logout</a
+                >
+              </li>
+            </ul>
+          </div>
+          {% else %}
+          <a href="/login" class="btn btn-light btn-sm">🔐 Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+  </head>
+  <body class="bg-light">
+    <div class="container-fluid py-4 px-4">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="/" class="btn btn-outline-secondary btn-sm me-2"
+            >← Dashboard</a
+          >
+          <h2 class="fw-bold mb-0 d-inline">📂 {{ project.name }}</h2>
+        </div>
+        <button
+          class="btn btn-outline-primary btn-sm"
+          data-bs-toggle="modal"
+          data-bs-target="#editProjModal"
+        >
+          ⚙️ Edit Project
+        </button>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center">
+              <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                📊
+              </div>
+              <div>
+                <small class="text-muted d-block">Total Tickets</small>
+                <h4 class="mb-0 fw-bold">{{ stats.total }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center">
+              <div class="icon-box bg-warning bg-opacity-10 text-warning me-3">
+                ⏳
+              </div>
+              <div>
+                <small class="text-muted d-block">In Progress</small>
+                <h4 class="mb-0 fw-bold">{{ stats.active }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center">
+              <div
+                class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"
+              >
+                ⏸️
+              </div>
+              <div>
+                <small class="text-muted d-block">Not Run</small>
+                <h4 class="mb-0 fw-bold">{{ stats.inactive }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center">
+              <div class="icon-box bg-success bg-opacity-10 text-success me-3">
+                ✅
+              </div>
+              <div>
+                <small class="text-muted d-block">Done</small>
+                <h4 class="mb-0 fw-bold">{{ stats.completed }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Add -->
+      <div class="card border-0 shadow-sm mb-4 p-3">
+        <div class="d-flex gap-2 mb-2">
+          <form
+            action="/api/add_scenario/{{ pid }}"
+            method="POST"
+            class="flex-grow-1 d-flex gap-2"
+          >
+            <input
+              type="text"
+              name="title"
+              class="form-control"
+              placeholder="➕ Tambah Ticket Baru..."
+              required
+            />
+            <button type="submit" class="btn btn-primary px-3">Tambah</button>
+          </form>
+        </div>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">🔍</span>
+          <input
+            type="text"
+            id="ticketSearch"
+            class="form-control"
+            placeholder="Cari nama ticket..."
+            onkeyup="if (event.key === 'Enter') searchTickets();"
+          />
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            onclick="searchTickets()"
+          >
+            Cari
+          </button>
+          <button
+            class="btn btn-outline-primary"
+            type="button"
+            onclick="resetSearch()"
+          >
+            Reset
+          </button>
+        </div>
+        <div id="searchResults" class="mt-2"></div>
+      </div>
+
+      <!-- Main Grid: Left (Tickets), Right (Timeline) -->
+      <div class="row g-4">
+        <!-- LEFT: Scrollable Ticket Sections with Collapse -->
+        <div class="col-lg-8">
+          <div class="ticket-scroll-container" id="ticketList">
+            <!-- 1. IN PROGRESS -->
+            <div class="status-section mb-2">
+              <div
+                class="section-header in-progress"
+                onclick="toggleStatusSection(this)"
+              >
+                <span>⏳ IN PROGRESS</span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-warning text-dark"
+                    >{{ stats.active }}</span
+                  >
+                  <span class="collapse-arrow">▼</span>
+                </div>
+              </div>
+              <div class="section-content" id="content-inprogress">
+                {% for s in scenarios %}{% if s.status == 'In Progress' %}
+                <div
+                  class="ticket-item d-flex justify-content-between align-items-center"
+                >
+                  <div class="flex-grow-1 me-3">
+                    <h6
+                      class="mb-1 fw-bold inline-title"
+                      contenteditable="true"
+                      onblur="saveRenameInline(this, {{s.id}})"
+                      onkeydown="
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          this.blur();
+                        }
+                      "
+                    >
+                      📄 {{s.title}}
+                    </h6>
+                    <small class="text-muted"
+                      >Updated: {{ (s.created_at or '-')[:10] }}</small
+                    >
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a href="/scenario/{{s.id}}" class="btn btn-sm btn-primary"
+                      >Detail →</a
+                    >
+                    <!-- SESUDAH -->
+                    <button
+                      class="btn btn-sm btn-outline-warning"
+                      onclick="archiveScenario({{s.id}})"
+                      title="Pindah ke Archive"
+                    >
+                      📥 Archive
+                    </button>
+                  </div>
+                </div>
+                {% endif %}{% endfor %} {% if stats.active == 0 %}
+                <div class="p-4 text-center text-muted small">
+                  Belum ada ticket In Progress.
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- 2. NOT RUN (DRAFT) -->
+            <div class="status-section mb-2">
+              <div
+                class="section-header not-run"
+                onclick="toggleStatusSection(this)"
+              >
+                <span>⏸️ NOT RUN (DRAFT)</span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary">{{ stats.inactive }}</span>
+                  <span class="collapse-arrow">▼</span>
+                </div>
+              </div>
+              <div class="section-content" id="content-notrun">
+                {% for s in scenarios %}{% if s.status == 'Not Run' %}
+                <div
+                  class="ticket-item d-flex justify-content-between align-items-center"
+                >
+                  <div class="flex-grow-1 me-3">
+                    <h6
+                      class="mb-1 fw-bold inline-title text-secondary"
+                      contenteditable="true"
+                      onblur="saveRenameInline(this, {{s.id}})"
+                      onkeydown="
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          this.blur();
+                        }
+                      "
+                    >
+                      📄 {{s.title}}
+                    </h6>
+                    <small class="text-muted"
+                      >Created: {{ (s.created_at or '-')[:10] }}</small
+                    >
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a
+                      href="/scenario/{{s.id}}"
+                      class="btn btn-sm btn-outline-secondary"
+                      >Detail →</a
+                    >
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      onclick="toggleSc({{s.id}}, {{1 if s.is_deleted else 0}})"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+                {% endif %}{% endfor %} {% if stats.inactive == 0 %}
+                <div class="p-4 text-center text-muted small">
+                  Belum ada ticket Not Run.
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- 3. DONE -->
+            <div class="status-section mb-2">
+              <div
+                class="section-header done"
+                onclick="toggleStatusSection(this)"
+              >
+                <span>✅ DONE</span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success">{{ stats.completed }}</span>
+                  <span class="collapse-arrow">▼</span>
+                </div>
+              </div>
+              <div class="section-content" id="content-done">
+                {% for s in scenarios %}{% if s.status == 'Done' %}
+                <div
+                  class="ticket-item done-ticket d-flex justify-content-between align-items-center"
+                >
+                  <div class="flex-grow-1 me-3">
+                    <h6
+                      class="mb-1 fw-bold text-success text-decoration-line-through"
+                    >
+                      📄 {{s.title}}
+                    </h6>
+                    <small class="text-muted"
+                      >Completed: {{ (s.end_date or '-')[:10] }}</small
+                    >
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a
+                      href="/scenario/{{s.id}}"
+                      class="btn btn-sm btn-outline-success"
+                      >View</a
+                    >
+                  </div>
+                </div>
+                {% endif %}{% endfor %} {% if stats.completed == 0 %}
+                <div class="p-4 text-center text-muted small">
+                  Belum ada ticket Done.
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Timeline Widget -->
+        <!-- RIGHT: Timeline Widget with Filters -->
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm">
+            <div
+              class="card-header bg-white fw-bold d-flex justify-content-between align-items-center"
+            >
+              <span>📅 Portfolio Timeline</span>
+              <small class="text-muted fw-normal"
+                >{{ timeline|length }} tickets</small
+              >
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="card-body py-2 border-bottom">
+              <div class="btn-group btn-group-sm w-100" role="group">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary active"
+                  onclick="filterTimeline('all', this)"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-warning"
+                  onclick="filterTimeline('In Progress', this)"
+                >
+                  ⏳ Active
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-success"
+                  onclick="filterTimeline('Done', this)"
+                >
+                  ✅ Done
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm timeline-table mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="ps-3">Ticket</th>
+                      <th>Status</th>
+                      <!-- ✅ KOLOM STATUS -->
+                      <th>Start</th>
+                      <th>End</th>
+                      <th class="pe-3">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody id="timelineBody">
+                    {% for t in timeline %}
+                    <tr class="timeline-row" data-status="{{ t.status }}">
+                      <td class="ps-3">
+                        <a
+                          href="/scenario/{{ t.id }}"
+                          class="fw-bold text-decoration-none text-dark small"
+                          >{{ t.title }}</a
+                        >
+                      </td>
+                      <td>
+                        <span
+                          class="badge bg-{{ 'warning' if t.status=='In Progress' else 'success' if t.status=='Done' else 'secondary' }} text-dark small"
+                          >{{ t.status }}</span
+                        >
+                      </td>
+                      <td class="small text-muted">{{ t.start }}</td>
+                      <td class="small text-muted">{{ t.end }}</td>
+                      <td class="pe-3 fw-bold text-primary small">
+                        {{ t.duration }}
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="5" class="text-center text-muted py-3 small">
+                        Belum ada data timeline.
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. ARCHIVED TICKETS (Folder Khusus) -->
+    <div class="status-section mb-2">
+      <div
+        class="section-header archived"
+        onclick="toggleStatusSection(this)"
+        style="
+          background: #f8f9fa;
+          color: #6c757d;
+          border-bottom-color: #dee2e6;
+        "
+      >
+        <span>📦 ARCHIVED TICKETS</span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark">{{ archived|length }}</span>
+          <span class="collapse-arrow">▼</span>
+        </div>
+      </div>
+      <div class="section-content collapsed" id="content-archived">
+        {% for s in archived %}
+        <div
+          class="ticket-item d-flex justify-content-between align-items-center bg-light"
+        >
+          <div class="flex-grow-1 me-3">
+            <h6 class="mb-1 fw-bold text-muted text-decoration-line-through">
+              📄 {{s.title}}
+            </h6>
+            <small class="text-muted"
+              >Archived • {{ (s.created_at or '-')[:10] }}</small
+            >
+          </div>
+          <div class="d-flex gap-2">
+            <button
+              class="btn btn-sm btn-outline-success"
+              onclick="restoreScenario({{s.id}})"
+            >
+              ♻️ Restore
+            </button>
+            <button
+              class="btn btn-sm btn-outline-danger"
+              onclick="hardDeleteScenario({{s.id}}, '{{s.title}}')"
+            >
+              🗑️ Delete Permanently
+            </button>
+          </div>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted small">
+          Tidak ada ticket di archive.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div class="modal fade" id="editProjModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5>⚙️ Edit Project</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="p_name"
+              class="form-control mb-2"
+              value="{{project.name}}"
+              placeholder="Project Name"
+            />
+            <input
+              type="text"
+              id="p_link"
+              class="form-control mb-2"
+              value="{{project.link}}"
+              placeholder="Project Link"
+            />
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Batal</button
+            ><button class="btn btn-primary" onclick="saveMeta({{pid}})">
+              💾 Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // ✅ Filter Timeline by Status
+      function filterTimeline(status, btn) {
+        // Update active button
+        document
+          .querySelectorAll(".btn-group .btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // Filter rows
+        const rows = document.querySelectorAll(".timeline-row");
+        rows.forEach((row) => {
+          if (status === "all" || row.dataset.status === status) {
+            row.style.display = "";
+          } else {
+            row.style.display = "none";
+          }
+        });
+      }
+      // Toggle Scenarios
+      function toggleSc(sid, isDel) {
+        fetch(`/api/${isDel ? "restore" : "delete"}_scenario/${sid}`, {
+          method: "POST",
+        }).then(() => location.reload());
+      }
+
+      // Save Project Metadata
+      function saveMeta(pid) {
+        fetch("/api/update_project", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: pid,
+            name: document.getElementById("p_name").value,
+            link: document.getElementById("p_link").value,
+          }),
+        }).then(() => location.reload());
+      }
+
+      // Inline Rename
+      function saveRenameInline(el, sid) {
+        let t = el.innerText.replace("📄", "").trim();
+        if (!t) t = "Untitled";
+        el.innerText = "📄 " + t;
+        fetch(`/api/rename_scenario/${sid}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: t }),
+        });
+      }
+
+      // Search Tickets
+      function searchTickets() {
+        const q = document.getElementById("ticketSearch").value.trim();
+        const container = document.getElementById("searchResults");
+        container.innerHTML =
+          '<div class="text-center text-muted py-2 small">🔍 Mencari...</div>';
+        fetch(`/api/search_tickets/{{ pid }}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.length === 0) {
+              container.innerHTML =
+                '<div class="alert alert-warning py-2 mb-0 small">Tidak ditemukan.</div>';
+              return;
+            }
+            let html = '<div class="list-group list-group-flush small">';
+            data.forEach((s) => {
+              html += `<a href="/scenario/${s.id}" class="list-group-item list-group-item-action py-2">📄 ${s.title} <span class="badge bg-secondary float-end">${s.status}</span></a>`;
+            });
+            html += "</div>";
+            container.innerHTML = html;
+          });
+      }
+
+      function resetSearch() {
+        document.getElementById("ticketSearch").value = "";
+        document.getElementById("searchResults").innerHTML = "";
+      }
+
+      // ✅ Toggle Collapsible Sections
+      function toggleStatusSection(header) {
+        header.classList.toggle("collapsed");
+        const content = header.nextElementSibling;
+        if (content.classList.contains("collapsed")) {
+          content.style.maxHeight = content.scrollHeight + "px";
+          content.classList.remove("collapsed");
+        } else {
+          content.style.maxHeight = "0px";
+          content.classList.add("collapsed");
+        }
+      }
+
+      // Initialize max-height for open sections on load
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".section-content").forEach((el) => {
+          if (!el.classList.contains("collapsed")) {
+            el.style.maxHeight = el.scrollHeight + "px";
+          }
+        });
+      });
+
+      // ✅ Archive (Soft Delete)
+      function archiveScenario(sid) {
+        if (
+          confirm(
+            "Pindahkan ticket ke Archive? Ticket akan hilang dari list utama.",
+          )
+        ) {
+          fetch(`/api/archive_scenario/${sid}`, { method: "POST" })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.success) location.reload();
+            });
+        }
+      }
+
+      // ✅ Restore (Kembalikan ke Active)
+      function restoreScenario(sid) {
+        fetch(`/api/restore_scenario/${sid}`, { method: "POST" })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) location.reload();
+          });
+      }
+
+      // ✅ Hard Delete (Permanent)
+      function hardDeleteScenario(sid, title) {
+        if (
+          confirm(
+            `⚠️ HAPUS PERMANEN "${title}"?\n\nSemua test case, screenshot, dan log akan dihapus selamanya.\nTindakan ini TIDAK DAPAT dibatalkan.`,
+          )
+        ) {
+          fetch(`/api/hard_delete_scenario/${sid}`, { method: "POST" })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.success) location.reload();
+              else alert("Error: " + d.error);
+            });
+        }
+      }
+    </script>
+  </body>
+</html>

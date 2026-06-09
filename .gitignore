@@ -1,0 +1,40 @@
+# Environment Variables (JANGAN PERNAH COMMIT INI!)
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.venv/
+database.db
+*.sqlite
+
+# Node.js / React
+node_modules/
+qa-frontend/node_modules/
+qa-frontend/dist/
+qa-frontend/build/
+
+# Uploads & Media
+uploads/
+*.png
+*.jpg
+*.jpeg
+*.xlsx
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+package-lock.json
+skills-lock.json

@@ -1,0 +1,5 @@
+id,username,password_hash,full_name,role,must_change_password,is_active,created_at,last_login,email
+1,admin,2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea,Super Admin,admin,0,1,2026-06-02 07:20:24,2026-06-05 09:27:15.502711,test@email.com
+2,dwiky,2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea,dwiky,tester,0,0,2026-06-02 07:56:51,2026-06-02 15:33:21.994330,test@email.com
+3,elang,2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea,elang,tester,0,1,2026-06-02 08:33:54,2026-06-02 15:34:03.358821,test@email.com
+4,dwikyr,8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918,dwikyr,admin,1,1,2026-06-04 10:50:41,2026-06-04 17:50:48.866728,test@email.com

@@ -1,0 +1,23 @@
+id,project_id,title,status,is_deleted,link,testers,start_date,end_date,created_at
+1,1,test,Done,0,,,2026-05-07,2026-05-18,2026-05-20 05:23:05
+2,1,test 2,Not Run,1,,,,,2026-05-20 05:23:20
+3,1,ticket 2,In Progress,0,https://jira.example.com/test-link-paste,Elang,2026-05-20,2026-05-22,2026-05-20 05:23:25
+4,1,test 4,Done,0,,,2026-05-19,2026-05-19,2026-05-20 05:24:18
+5,1,a,Not Run,1,,,,,2026-05-20 05:46:55
+6,1,b,Not Run,1,,,,,2026-05-20 05:47:12
+7,1,dsa,Done,0,,,2026-05-22,2026-05-29,2026-05-20 05:47:15
+8,1,ticket 2,In Progress,0,,,,,2026-05-20 05:47:17
+10,7,test,Done,0,https://jira.example.com/test,dwiky,2026-06-03,2026-06-05,2026-05-22 03:33:00
+11,1,ticket 4,Not Run,0,,,,,2026-05-22 04:52:30
+12,1,ticket 3,Not Run,0,,,,,2026-05-22 04:52:38
+14,1,test buat ticket,Not Run,1,,,,,2026-06-02 08:35:21
+15,1,test tambah ticket,Not Run,1,,,,,2026-06-03 04:20:06
+16,1,test tambah ticket,Not Run,1,,,,,2026-06-03 04:22:08
+17,1,test tambah ticket,Not Run,0,,,,,2026-06-03 04:22:58
+19,7,oke,Not Run,1,,,,,2026-06-04 09:02:34
+20,7,oke,Not Run,1,,,,,2026-06-04 09:03:25
+21,7,ok,Not Run,1,,,,,2026-06-04 09:12:59
+22,7,coba,Not Run,1,,,,,2026-06-04 09:14:03
+23,7,Create New Ticket,Done,0,,,,,2026-06-04 10:28:27
+24,5,tambah ticket 1,Not Run,0,,,,,2026-06-04 10:33:13
+25,5,tambah ticket 2,Not Run,0,,,,,2026-06-04 10:33:18

@@ -1,0 +1,70 @@
+id,tc_id,scenario_id,content,display_order,custom_name,created_at
+1,TC-002,3,dszdsadsa,0,Log_1779338109476,2026-05-21 04:35:13
+2,TC-002,3,"1. Login User (table user), function CRUD -> berupa cre_tms, cre_id, upd_tms, upd_id, user_id, username, email, password dan sebagainya yang bisa ditambahkan.
+
+	- apakah perlu untuk dipisahkan antara tabel user dan user information? 
+
+	- berarti halaman depan nya adalah register user dan halaman login. dimana login atau register ini akan memanggil api /login dan /register. perlu diingat bahwa register harus memiliki persetujuan oleh admin user sebelum benar benar surfing ke dashboard.
+
+2. Dashboard (table Project: cre_tms, cre_id, upd_tms, upd_id, proj_id, proj_name, proj_link dan dapat ditambahkan lagi sesuai dengan yang diinginkan)
+
+	- dashboard ini bertujuan untuk seperti set-up project client
+
+	- fitur nya adalah CRUD lalu ada soft delete yang nantinya akan dimasukkan ke folder archive dan dapat direstore dan hard delete (kondisinya adalah semua yang terhubung kedalam project ini akan terhapus semuanya)
+
+	- api yang dipanggil adalah /dashboard
+
+	- fitur berikut nya adalah adanya tampilan card per project yang responsif yang nantinya bagian project yang di klik akan masuk kedalam project tersebut.
+
+	- mungkin nanti akan lebih advance tetapi saya ingin advance nya saat ini di project.
+
+3. Project (table ticket: cre_tms, cre_id, upd_tms, upd_id, ticket_id, ticket_name,proj_link, start_date, end_date, status, title, is_archived) tambahkan nanti jika ada yang diperlukan.
+	- fiturnya adalah sebuah dashboard overview dari project tertentu dimana memiliki fitur sebagai berikut:
+		- Judul Project (harus ada, per project)
+	- Side Navigation Bar
+		- berisi informasi Active Project (diambil dari informasi ticket yang statusnya != done), tampilannya adalah Active Project(1) -> 1 ini adalah jumlah count dari project != done
+		- completed(1) (diambil dari informasi ticket yang statusnya = done), tampilannya sama.
+		- dapat di ellapse dan collapse.
+	- Section 1
+		- Card Total ticket (diambil dari jumlah ticket yang dibuat)
+		- Card In Progress (diambil dari ticket dengan status in progress)
+		- Card Not Run (diambil dari ticket dengan status not run)
+		- Card Done (diambil dari ticket dengan status done)
+	- Section 2
+		- Text Field untuk menambahkan ticket baru yang nantinya akan dimasukkan ke table
+		- Button tambah untuk mentrigger penambahan ticket baru tersebut (dapat juga di trigger melalui enter)
+		- Text Field untuk mencari ticket yang telah dibuat 
+		- button cari untuk mentrigger ticket yang ingin dicari (tidak mesti as is, tetapi select in saja)
+		- button reset untuk mengatur ulang ticket yang dicari.
+		- ketika sudah di trigger button cari, akan menampilkan list ticket yang dapat di klik dan langsung terhubung kedalam ticket tersebut dan ui nya responsif agar lebih menarik.
+		- hasil ticket pencarian harus menampilkan informasi ticket start, ticket end, status.
+
+	- Section 3
+		- List ticket (tampilan seluruh informasi ticket yang dapat di filter sesuai dengan status yang ada, misal in progress dsb).
+		- ticket dapat langsung di klik dan langsung terhubung kedalam tampilan berikutnya.
+		- terdapat button garis 3 dengan informasi sebagai berikut:
+			- Edit Nama Ticket
+			- Hapus Ticket (soft deleted, dimana ticket yang dihapus akan masuk ke archive folder project)
+			- Pindahkan ticket ke project lain, ketika di klik akan menampilkan project lain, dimana list nya adalah project selain yang dibuka saat itu.
+		- pada ticket tersebut terdapat informasi kapan terakhir di update agar dapat dilihat langsung.
+	- Section 4
+		- Terdapat timeline pengerjaan ticket tersebut
+		- Informasinya berupa (Ticket, Start Date, End Date, Duration) duration ini adalah total durasi pengerjaan dimana kondisinya adalah, jika end date tidak berisi maka duration = current date - start date, jika end date nya berisi maka duration = end date - start date.
+		- Jika Start Date dan End date tidak berisi, tampilkan N/A saja
+	- Jika ada fitur lain yang perlu ditambahkan, tolong tambahkan saja agar nice to have.
+	
+4. Ticket (table ticket details / test cases)
+	- Table nya adalah sebagai berikut. (id, ticket_id, tc_id, display_order, test_case, test_criteria, test_date, test_data, expected_result, actual_result, status, remarks, is_deleted, created_at)
+	- table picture attachment (id, ticket_id, tc_id, file_path, display_order, custom_name)
+	- table log attachment (id, ticket_id, tc_id, content, display_order, custom_name, created_at)
+	
+	Fitur di ticket sangat banyak.
+	- Terdapat MetaData yang berisi yaitu: Project, Link, Tester(s), Start Date, End Date yang dapat diupdate.",0,Log_1779338121464,2026-05-21 04:35:22
+3,TC-001,8,1,0,Log_1780457784071,2026-06-03 03:36:25
+4,TC-002,8,2,0,Log_1780457790902,2026-06-03 03:36:32
+5,TC-002,8,3,0,Log_1780457794861,2026-06-03 03:36:35
+6,TC-003,8,4,0,Log_1780457801140,2026-06-03 03:36:42
+7,TC-001,8,5,0,Log_1780457806453,2026-06-03 03:36:47
+8,TC-003,8,6,0,Log_1780457812194,2026-06-03 03:36:53
+9,TC-006,8,7,0,Log_1780457819042,2026-06-03 03:37:00
+10,TC-004,8,8,0,Log_1780457825625,2026-06-03 03:37:06

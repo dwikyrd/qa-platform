@@ -1,0 +1,11 @@
+Exported at: 2026-06-05 10:03:48.915896
+Database: test_manager_final.db
+
+Urutan import ke Supabase (PENTING):
+1. users
+2. projects
+3. scenarios
+4. test_cases
+5. screenshots
+6. log_attachments
+7. activity_logs

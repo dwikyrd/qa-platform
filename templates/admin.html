@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>⚙️ Admin Panel - QA Test Manager</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f8f9fa;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      .card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+      }
+      .badge-role {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+      }
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #0d6efd;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+      }
+      .nav-tabs .nav-link.active {
+        font-weight: bold;
+        border-bottom: 3px solid #0d6efd;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">📂 QA Test Manager</a>
+        <div class="d-flex align-items-center">
+          <span class="text-white me-3"
+            >👤 {{ current_user.username }} ({{ current_user.role | capitalize
+            }})</span
+          >
+          <a href="/" class="btn btn-light btn-sm">← Dashboard</a>
+          <a href="/logout" class="btn btn-outline-light btn-sm ms-2">Logout</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-4">
+      <h2 class="fw-bold mb-4">⚙️ Admin Panel</h2>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show">
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item">
+          <button
+            class="nav-link active"
+            data-bs-toggle="tab"
+            data-bs-target="#users"
+          >
+            👥 Manage Users ({{ users|length }})
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#logs">
+            📜 Activity Logs
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- TAB 1: USER MANAGEMENT -->
+        <div class="tab-pane fade show active" id="users">
+          <div class="card p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="mb-0 fw-bold">Tambah User Baru</h5>
+              <button
+                class="btn btn-primary btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#addUserModal"
+              >
+                ➕ Tambah User
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body p-0">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for u in users %}
+                  <tr class="{{ 'table-secondary' if not u.is_active }}">
+                    <td>
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar">
+                          {{ u.username[0] | upper }}
+                        </div>
+                        <div>
+                          <div class="fw-bold">
+                            {{ u.full_name or u.username }}
+                          </div>
+                          <div class="text-muted small">@{{ u.username }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        class="badge bg-{{ 'danger' if u.role=='admin' else 'primary' if u.role=='tester' else 'secondary' }} badge-role"
+                      >
+                        {{ u.role | capitalize }}
+                      </span>
+                    </td>
+                    <td>
+                      {% if u.is_active %}
+                      <span class="badge bg-success">Active</span>
+                      {% else %}
+                      <span class="badge bg-secondary">Inactive</span>
+                      {% endif %} {% if u.must_change_password %}
+                      <span class="badge bg-warning text-dark ms-1"
+                        >Must Change PW</span
+                      >
+                      {% endif %}
+                    </td>
+                    <td>{{ u.created_at[:10] if u.created_at else '-' }}</td>
+                    <td>
+                      {{ u.last_login[:16] if u.last_login else 'Never' }}
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <button
+                          class="btn btn-outline-primary"
+                          onclick="resetPassword({{u.id}}, '{{u.username}}')"
+                          title="Reset Password"
+                        >
+                          🔑
+                        </button>
+                        <button
+                          class="btn btn-outline-{{ 'success' if not u.is_active else 'warning' }}"
+                          onclick="toggleUser({{u.id}})"
+                          title="{{ 'Activate' if not u.is_active else 'Deactivate' }}"
+                        >
+                          {{ '▶️' if not u.is_active else '⏸️' }}
+                        </button>
+                        {% if u.id != current_user.id %}
+                        <button
+                          class="btn btn-outline-danger"
+                          onclick="deleteUser({{u.id}}, '{{u.username}}')"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: ACTIVITY LOGS -->
+        <div class="tab-pane fade" id="logs">
+          <div class="card">
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for log in logs %}
+                  <tr>
+                    <td>
+                      {{ log.created_at[:16] if log.created_at else '-' }}
+                    </td>
+                    <td><strong>{{ log.username or 'System' }}</strong></td>
+                    <td><span class="badge bg-info">{{ log.action }}</span></td>
+                    <td>{{ log.target_type }} #{{ log.target_id or '-' }}</td>
+                    <td>{{ log.details or '-' }}</td>
+                    <td><code>{{ log.ip_address or '-' }}</code></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Tambah User -->
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">➕ Tambah User Baru</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input
+                type="text"
+                id="new-username"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Full Name (opsional)</label>
+              <input type="text" id="new-fullname" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password Awal</label>
+              <input
+                type="password"
+                id="new-password"
+                class="form-control"
+                minlength="4"
+                required
+              />
+              <div class="form-text">
+                Minimal 4 karakter. User akan diminta ganti password saat login
+                pertama.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select id="new-role" class="form-select">
+                <option value="tester">Tester</option>
+                <option value="viewer">Viewer (Read Only)</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Batal
+            </button>
+            <button class="btn btn-primary" onclick="createUser()">
+              💾 Simpan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function createUser() {
+        const username = document.getElementById("new-username").value;
+        const full_name = document.getElementById("new-fullname").value;
+        const password = document.getElementById("new-password").value;
+        const role = document.getElementById("new-role").value;
+
+        if (!username || !password)
+          return alert("Username dan password wajib diisi");
+
+        fetch("/api/admin/create-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, full_name, password, role }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) location.reload();
+            else alert("Error: " + d.error);
+          });
+      }
+
+      function toggleUser(userId) {
+        fetch(`/api/admin/toggle-user/${userId}`, { method: "POST" })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) location.reload();
+            else alert("Error: " + d.error);
+          });
+      }
+
+      function resetPassword(userId, username) {
+        const newPass = prompt(
+          `Reset password untuk user "${username}"?\nKetik password baru (min. 4 karakter):`,
+        );
+        if (!newPass || newPass.length < 4) return;
+
+        fetch(`/api/admin/reset-password/${userId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: newPass }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success)
+              alert(
+                "Password berhasil direset. User harus login dengan password baru.",
+              );
+            else alert("Error: " + d.error);
+          });
+      }
+
+      function deleteUser(userId, username) {
+        if (
+          !confirm(
+            `Hapus user "${username}"?\nUser akan dinonaktifkan dan tidak bisa login.`,
+          )
+        )
+          return;
+
+        fetch(`/api/admin/delete-user/${userId}`, { method: "POST" })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) location.reload();
+            else alert("Error: " + d.error);
+          });
+      }
+    </script>
+  </body>
+</html>

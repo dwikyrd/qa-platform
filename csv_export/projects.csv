@@ -1,0 +1,8 @@
+id,name,link,is_archived
+1,SINARMAS BANK,https://jira.example.com/test,0
+2,Project B,https://jira.example.com/P2,1
+3,Project C,https://jira.example.com/P3,1
+5,SIAM COMMERCIAL BANK,https://jira.example.com/P5,0
+6,HONEST BANK,https://jira.example.com/honestbank,0
+7,MAYAPADA,https://jira.example.com/testmayapada,0
+8,a,,1
