@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base config
 const api = axios.create({
-  baseURL: "", // Sesuaikan dengan port Flask Anda
+  baseURL: "/api", // Sesuaikan dengan port Flask Anda
   headers: {
     "Content-Type": "application/json",
   },

@@ -30,12 +30,14 @@ const COLORS = {
 
 export default function GlobalAnalytics() {
   const { theme } = useTheme();
-  const [stats, setStats] = useState(null);
+
+  // ✅ SEMUA state default harus array/object yang aman
+  const [stats, setStats] = useState({ tickets: {} });
   const [projectTickets, setProjectTickets] = useState([]);
-  const [periodStats, setPeriodStats] = useState(null);
+  const [periodStats, setPeriodStats] = useState({ monthly: [], weekly: [] });
   const [testerStats, setTesterStats] = useState([]);
   const [availableMonths, setAvailableMonths] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(""); // format: "2026-06"
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,35 +46,42 @@ export default function GlobalAnalytics() {
   }, []);
 
   useEffect(() => {
-    // Fetch period stats saat selectedMonth berubah
-    fetchPeriodStats();
+    if (selectedMonth) {
+      fetchPeriodStats();
+    }
   }, [selectedMonth]);
 
   const fetchAvailableMonths = async () => {
     try {
       const res = await dashboardAPI.getAvailableMonths();
-      setAvailableMonths(res.data);
+      const months = safeArray(res.data);
+      setAvailableMonths(months);
       // Set default ke bulan terbaru
-      if (res.data.length > 0) {
-        setSelectedMonth(res.data[0].value);
+      if (months.length > 0) {
+        setSelectedMonth(months[0].value);
       }
     } catch (error) {
       console.error("Failed to load available months:", error);
+      setAvailableMonths([]);
     }
   };
 
   const fetchAnalytics = async () => {
     try {
       const statsRes = await dashboardAPI.getGlobalStats();
-      setStats(statsRes.data);
+      setStats(statsRes.data || { tickets: {} });
 
       const ticketsRes = await dashboardAPI.getProjectTicketCounts();
-      setProjectTickets(ticketsRes.data);
+      setProjectTickets(safeArray(ticketsRes.data));
 
       const testerRes = await dashboardAPI.getTicketsByTester();
-      setTesterStats(testerRes.data);
+      setTesterStats(safeArray(testerRes.data));
     } catch (error) {
       console.error("Failed to load analytics:", error);
+      // ✅ Set default values saat error
+      setStats({ tickets: {} });
+      setProjectTickets([]);
+      setTesterStats([]);
     } finally {
       setLoading(false);
     }
@@ -82,11 +91,21 @@ export default function GlobalAnalytics() {
     if (!selectedMonth) return;
 
     try {
-      const [year, month] = safeArray(selectedMonth.split("-")).map(Number);
+      const parts = selectedMonth.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+
       const res = await dashboardAPI.getTicketStatsByPeriod(year, month);
-      setPeriodStats(res.data);
+      const data = res.data || {};
+
+      setPeriodStats({
+        monthly: safeArray(data.monthly),
+        weekly: safeArray(data.weekly),
+        total_filtered: data.total_filtered || 0,
+      });
     } catch (error) {
       console.error("Failed to load period stats:", error);
+      setPeriodStats({ monthly: [], weekly: [], total_filtered: 0 });
     }
   };
 
@@ -99,6 +118,7 @@ export default function GlobalAnalytics() {
     );
   }
 
+  // ✅ Pastikan tickets selalu object
   const tickets = stats?.tickets || {};
 
   const pieData = [
@@ -116,6 +136,14 @@ export default function GlobalAnalytics() {
     color: theme === "dark" ? "#fff" : "#000",
   };
 
+  // ✅ Safe data untuk chart
+  const safePieData = safeArray(pieData);
+  const safeProjectTickets = safeArray(projectTickets);
+  const safeMonthlyData = safeArray(periodStats?.monthly);
+  const safeWeeklyData = safeArray(periodStats?.weekly);
+  const safeTesterStats = safeArray(testerStats);
+  const safeAvailableMonths = safeArray(availableMonths);
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
@@ -129,34 +157,40 @@ export default function GlobalAnalytics() {
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             🎫 Ticket Status Distribution
           </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {safeArray(pieData).map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[entry.name.toLowerCase().replace(" ", "_")]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend
-                formatter={(value) => (
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {value}
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {safePieData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={safePieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {safePieData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[entry.name.toLowerCase().replace(" ", "_")]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend
+                  formatter={(value) => (
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {value}
+                    </span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+              Belum ada data
+            </div>
+          )}
         </div>
 
         {/* Bar Chart - Project */}
@@ -164,27 +198,33 @@ export default function GlobalAnalytics() {
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             📈 Number of Tickets per Project
           </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={projectTickets}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-              />
-              <XAxis
-                dataKey="name"
-                stroke={theme === "dark" ? "#9ca3af" : "#6b7280"}
-                style={{ fontSize: "11px" }}
-              />
-              <YAxis stroke={theme === "dark" ? "#9ca3af" : "#6b7280"} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar
-                dataKey="ticket_count"
-                fill={COLORS.primary}
-                name="Ticket"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {safeProjectTickets.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={safeProjectTickets}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke={theme === "dark" ? "#9ca3af" : "#6b7280"}
+                  style={{ fontSize: "11px" }}
+                />
+                <YAxis stroke={theme === "dark" ? "#9ca3af" : "#6b7280"} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar
+                  dataKey="ticket_count"
+                  fill={COLORS.primary}
+                  name="Ticket"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+              Belum ada data project
+            </div>
+          )}
         </div>
       </div>
 
@@ -195,9 +235,9 @@ export default function GlobalAnalytics() {
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             📅 Tickets / Month (Last 6 Months)
           </h3>
-          {periodStats?.monthly && periodStats.monthly.length > 0 ? (
+          {safeMonthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={periodStats.monthly}>
+              <BarChart data={safeMonthlyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
@@ -243,7 +283,7 @@ export default function GlobalAnalytics() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
               >
-                {safeArray(availableMonths).map((m) => (
+                {safeAvailableMonths.map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}
                   </option>
@@ -266,9 +306,9 @@ export default function GlobalAnalytics() {
             </div>
           )}
 
-          {periodStats?.weekly && periodStats.weekly.length > 0 ? (
+          {safeWeeklyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={periodStats.weekly}>
+              <LineChart data={safeWeeklyData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
@@ -302,7 +342,7 @@ export default function GlobalAnalytics() {
       </div>
 
       {/* Row 3: Tester Stats Table */}
-      {testerStats.length > 0 && (
+      {safeTesterStats.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             👥 Ticket per Tester
@@ -335,7 +375,7 @@ export default function GlobalAnalytics() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {safeArray(testerStats).map((stat, idx) => {
+                {safeTesterStats.map((stat, idx) => {
                   const progress =
                     stat.total > 0
                       ? Math.round(((stat.done || 0) / stat.total) * 100)
@@ -348,13 +388,13 @@ export default function GlobalAnalytics() {
                       <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                            {stat.tester.charAt(0).toUpperCase()}
+                            {(stat.tester || "?").charAt(0).toUpperCase()}
                           </div>
                           <span>{stat.tester}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center font-bold">
-                        {stat.total}
+                        {stat.total || 0}
                       </td>
                       <td className="py-3 px-4 text-center text-green-600 dark:text-green-400 font-medium">
                         {stat.done || 0}
