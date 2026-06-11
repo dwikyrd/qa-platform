@@ -478,15 +478,78 @@ def get_review_stats(sid):
 # ============================================================
 # ATTACHMENTS (Screenshots & Logs)
 # ============================================================
-def get_attachments(sid, tc_id):
-    """Ambil semua attachments untuk TC"""
-    screenshots = query_db('screenshots',
-                           filters={'scenario_id': sid, 'tc_id': tc_id},
-                           order='display_order.asc')
-    logs = query_db('log_attachments',
-                    filters={'scenario_id': sid, 'tc_id': tc_id},
-                    order='display_order.asc')
-    return {'screenshots': screenshots, 'logs': logs}
+def get_attachments(sid, tc_id=None):
+    """
+    Ambil semua attachments (screenshots & logs) untuk scenario.
+    Jika tc_id specified, ambil hanya untuk TC tersebut.
+    """
+    print(f"\n🔍 get_attachments called:")
+    print(f"   - Scenario ID: {sid}")
+    print(f"   - TC ID: {tc_id}")
+    
+    screenshots = []
+    logs = []
+    
+    try:
+        # Query screenshots
+        if tc_id:
+            sc_query = query_db('screenshots', 
+                               filters={'scenario_id': sid, 'tc_id': tc_id},
+                               order='display_order.asc')
+        else:
+            sc_query = query_db('screenshots',
+                               filters={'scenario_id': sid},
+                               order='display_order.asc')
+        
+        print(f"   - Screenshots found: {len(sc_query) if sc_query else 0}")
+        
+        if sc_query:
+            for sc in sc_query:
+                screenshots.append({
+                    'id': sc.get('id'),
+                    'tc_id': sc.get('tc_id'),
+                    'file_path': sc.get('file_path'),
+                    'name': sc.get('custom_name') or os.path.basename(sc.get('file_path', '')),
+                    'url': f"/uploads/{sc.get('file_path')}",
+                    'display_order': sc.get('display_order', 0)
+                })
+                print(f"     ✓ {sc.get('tc_id')} - {sc.get('file_path')}")
+        
+        # Query logs
+        if tc_id:
+            log_query = query_db('log_attachments',
+                                filters={'scenario_id': sid, 'tc_id': tc_id},
+                                order='display_order.asc')
+        else:
+            log_query = query_db('log_attachments',
+                                filters={'scenario_id': sid},
+                                order='display_order.asc')
+        
+        print(f"   - Logs found: {len(log_query) if log_query else 0}")
+        
+        if log_query:
+            for log in log_query:
+                logs.append({
+                    'id': log.get('id'),
+                    'tc_id': log.get('tc_id'),
+                    'content': log.get('content'),
+                    'name': log.get('custom_name') or f"Log_{log.get('id')}",
+                    'display_order': log.get('display_order', 0)
+                })
+        
+        result = {
+            'screenshots': screenshots,
+            'logs': logs
+        }
+        
+        print(f"   ✅ Returning {len(screenshots)} screenshots, {len(logs)} logs\n")
+        return result
+        
+    except Exception as e:
+        print(f"   ❌ Error in get_attachments: {str(e)}\n")
+        import traceback
+        traceback.print_exc()
+        return {'screenshots': [], 'logs': []}
 
 
 def get_all_logs_for_export(sid):

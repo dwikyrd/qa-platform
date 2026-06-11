@@ -117,69 +117,109 @@ def prepare_scenario_detail(sid):
 
 # ================= EXPORT EXCEL SERVICE =================
 def export_to_excel(sid):
-    """Export test cases ke Excel"""
-    sc = get_scenario(sid)
-    if not sc:
-        return None, "Scenario not found"
+    """Export test cases ke Excel dengan handling screenshot yang lebih baik"""
+    import os
+    import io
+    import html
+    import traceback
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     
-    proj = get_project(sc['project_id'])
-    tcs = get_test_cases(sid)
-    atts = get_attachments(sid, '')
-    all_logs = get_all_logs_for_export(sid)
+    try:
+        from openpyxl.drawing.image import Image as OpenPyxlImage
+        HAS_PILLOW = True
+    except ImportError:
+        HAS_PILLOW = False
+        print("⚠️  Pillow/OpenPyxl Image not available. Screenshots will be skipped.")
     
-    # Group screenshots by tc_id
-    sc_dict = {}
-    for r in atts['screenshots']:
-        sc_dict.setdefault(r['tc_id'], []).append({
-            'path': r['file_path'],
-            'name': r.get('custom_name') or os.path.basename(r['file_path'])
-        })
+    # Import models
+    from models import (
+        get_project, get_scenario, get_test_cases,
+        get_attachments, get_all_logs_for_export
+    )
+    from utils import generate_export_filename
     
-    # Create workbook
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Test Execution Report"
+    # ===== PENTING: Tentukan UPLOAD_FOLDER dengan benar =====
+    # Gunakan path absolut dari lokasi file ini (services.py)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     
-    # Header
-    header = ws.cell(row=1, column=1, value="System Integration Testing")
-    header.font = Font(size=20, bold=True, color="1F4E79")
-    ws.merge_cells(start_row=1, end_row=1, start_column=1, end_column=2)
+    print(f"\n📊 Starting Excel Export for SID: {sid}")
+    print(f"📁 Upload folder: {UPLOAD_FOLDER}")
+    print(f"📁 Upload folder exists: {os.path.exists(UPLOAD_FOLDER)}")
     
-    # Metadata
-    full_link = sc.get('link') or (proj.get('link') if proj else '-')
-    meta = [
-        ("Project Name", proj.get('name') if proj else 'N/A'),
-        ("Project Link", full_link),
-        ("Testing Start Date / Time", sc.get('start_date') or "-"),
-        ("Testing End Date / Time", sc.get('end_date') or "-"),
-        ("Name of Tester/s:", sc.get('testers') or "-")
-    ]
-    
-    for i, (label, value) in enumerate(meta, 2):
-        ws.cell(row=i, column=1, value=label).font = Font(bold=True)
-        ws.cell(row=i, column=2, value=value)
-    
-    # Test cases header
-    hdrs = ["TC ID", "Test Case", "Test Criteria", "Test Date", "Test Data",
-            "Expected Result", "Actual Result", "Status", "Remarks"]
-    start_row = len(meta) + 2
-    
-    for c, h in enumerate(hdrs, 1):
-        cell = ws.cell(row=start_row, column=c, value=h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="1F4E79")
-        cell.alignment = Alignment(horizontal="center")
-    
-    # Test cases data
-    for r, tc in enumerate(tcs, start_row + 1):
-        ws.cell(row=r, column=1, value=tc.get('tc_id'))
-        ws.cell(row=r, column=2, value=tc.get('test_case') or "-")
+    try:
+        # 1. Ambil data scenario & project
+        sc = get_scenario(sid)
+        if not sc:
+            return None, "Scenario not found"
         
-        for c, k in enumerate(['test_criteria', 'test_date', 'test_data',
-                               'expected_result', 'actual_result', 'status', 'remarks'], 3):
-            val = tc.get(k)
-            if k in ['test_case', 'test_criteria', 'test_data',
-                     'expected_result', 'actual_result', 'remarks']:
+        proj = get_project(sc['project_id'])
+        tcs = get_test_cases(sid)
+        atts = get_attachments(sid, '')
+        all_logs = get_all_logs_for_export(sid)
+        
+        print(f"📋 Test Cases: {len(tcs)}")
+        print(f"📎 Screenshots: {len(atts.get('screenshots', []))}")
+        print(f"📝 Logs: {len(all_logs)}")
+        
+        # 2. Group screenshots by tc_id
+        sc_dict = {}
+        for r in atts.get('screenshots', []):
+            tc_id = r.get('tc_id')
+            if tc_id:
+                if tc_id not in sc_dict:
+                    sc_dict[tc_id] = []
+                sc_dict[tc_id].append({
+                    'path': r.get('file_path', ''),
+                    'name': r.get('custom_name') or os.path.basename(r.get('file_path', ''))
+                })
+        
+        print(f"📊 Screenshots by TC: {len(sc_dict)} test cases have screenshots")
+        
+        # 3. Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Test Execution Report"
+        
+        # Header
+        header = ws.cell(row=1, column=1, value="System Integration Testing")
+        header.font = Font(size=20, bold=True, color="1F4E79")
+        ws.merge_cells(start_row=1, end_row=1, start_column=1, end_column=2)
+        
+        # Metadata
+        full_link = sc.get('link') or (proj.get('link') if proj else '-')
+        meta = [
+            ("Project Name", proj.get('name') if proj else 'N/A'),
+            ("Project Link", full_link),
+            ("Testing Start Date / Time", sc.get('start_date') or "-"),
+            ("Testing End Date / Time", sc.get('end_date') or "-"),
+            ("Name of Tester/s:", sc.get('testers') or "-")
+        ]
+        
+        for i, (label, value) in enumerate(meta, 2):
+            ws.cell(row=i, column=1, value=label).font = Font(bold=True)
+            ws.cell(row=i, column=2, value=value)
+        
+        # Test cases header
+        hdrs = ["TC ID", "Test Case", "Test Criteria", "Test Date", "Test Data",
+                "Expected Result", "Actual Result", "Status", "Remarks"]
+        start_row = len(meta) + 2
+        
+        for c, h in enumerate(hdrs, 1):
+            cell = ws.cell(row=start_row, column=c, value=h)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="1F4E79")
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Test cases data
+        for r, tc in enumerate(tcs, start_row + 1):
+            ws.cell(row=r, column=1, value=tc.get('tc_id'))
+            ws.cell(row=r, column=2, value=tc.get('test_case') or "-")
+            
+            for c, k in enumerate(['test_criteria', 'test_date', 'test_data',
+                                   'expected_result', 'actual_result', 'status', 'remarks'], 3):
+                val = tc.get(k)
                 if val and isinstance(val, str):
                     val = val.strip()
                     cell = ws.cell(row=r, column=c, value=val if val else "-")
@@ -187,80 +227,125 @@ def export_to_excel(sid):
                         cell.alignment = Alignment(wrap_text=True, vertical='top')
                 else:
                     ws.cell(row=r, column=c, value="-")
-            else:
-                ws.cell(row=r, column=c, value=val if val else "-")
+                
+                if k == 'status':
+                    col = "008000" if val == "Pass" else "FF0000" if val == "Fail" \
+                          else "FFA500" if val == "In Progress" else "808080"
+                    ws.cell(row=r, column=c).font = Font(bold=True, color=col)
             
-            if k == 'status':
-                col = "008000" if val == "Pass" else "FF0000" if val == "Fail" \
-                      else "FFA500" if val == "In Progress" else "808080"
-                ws.cell(row=r, column=c).font = Font(bold=True, color=col)
-        
-        # Border
-        for c in range(1, 10):
-            ws.cell(row=r, column=c).border = Border(
-                bottom=Side(style="thin"), top=Side(style="thin"),
-                left=Side(style="thin"), right=Side(style="thin")
-            )
-        
-        ws.row_dimensions[r].height = 20
-        
-        # Auto height untuk multi-line
-        for k in ['test_case', 'test_criteria', 'test_data',
-                  'expected_result', 'actual_result']:
-            val = tc.get(k)
-            if val and isinstance(val, str) and '\n' in val:
-                ws.row_dimensions[r].height = max(20, (val.count('\n') + 1) * 15)
-                break
-    
-    # Screenshots sheet
-    ws2 = wb.create_sheet("Screenshots")
-    ws2.column_dimensions['A'].width = 12
-    ws2.column_dimensions['B'].width = 35
-    ws2.column_dimensions['C'].width = 45
-    
-    for i, h in enumerate(["TC ID", "Photo Name", "Preview"], 1):
-        ws2.cell(row=1, column=i, value=h).font = Font(bold=True)
-    
-    ri = 2
-    for tc in tcs:
-        for img in sc_dict.get(tc['tc_id'], []):
-            ws2.cell(row=ri, column=1, value=tc['tc_id'])
-            ws2.cell(row=ri, column=2, value=img['name'])
+            # Border
+            for c in range(1, 10):
+                ws.cell(row=r, column=c).border = Border(
+                    bottom=Side(style="thin"), top=Side(style="thin"),
+                    left=Side(style="thin"), right=Side(style="thin")
+                )
             
-            full = os.path.join(UPLOAD_FOLDER, img['path'])
+            ws.row_dimensions[r].height = 20
+        
+        # ===== SHEET SCREENSHOTS (FIXED) =====
+        ws2 = wb.create_sheet("Screenshots")
+        ws2.column_dimensions['A'].width = 12
+        ws2.column_dimensions['B'].width = 35
+        ws2.column_dimensions['C'].width = 45
+        
+        for i, h in enumerate(["TC ID", "Photo Name", "Preview"], 1):
+            ws2.cell(row=1, column=i, value=h).font = Font(bold=True)
+        
+        ri = 2
+        images_added = 0
+        images_failed = 0
+        
+        for tc in tcs:
+            tc_id = tc.get('tc_id')
+            screenshots = sc_dict.get(tc_id, [])
             
-            try:
-                if HAS_PILLOW and os.path.exists(full) and os.path.getsize(full) > 0:
-                    im = OpenPyxlImage(full)
-                    if im.width > 300:
-                        r = 300 / im.width
-                        im.width = 300
-                        im.height = int(im.height * r)
+            for img in screenshots:
+                ws2.cell(row=ri, column=1, value=tc_id)
+                ws2.cell(row=ri, column=2, value=img['name'])
+                
+                # Build full path
+                img_filename = img['path']
+                full_path = os.path.join(UPLOAD_FOLDER, img_filename)
+                
+                print(f"   🖼️  Processing: {img_filename}")
+                print(f"      Full path: {full_path}")
+                print(f"      Exists: {os.path.exists(full_path)}")
+                
+                try:
+                    # Cek apakah file ada dan tidak kosong
+                    if not os.path.exists(full_path):
+                        raise FileNotFoundError(f"File not found: {full_path}")
                     
-                    ws2.add_image(im, f"C{ri}")
-                    ws2.row_dimensions[ri].height = (im.height * 0.75) + 15
-                else:
-                    ws2.cell(row=ri, column=3, value="⚠️ File tidak ditemukan")
-            except Exception as e:
-                ws2.cell(row=ri, column=3, value=f"❌ Error Gambar: {img['path']}")
-                print(f"⚠️ Export Warning: {img['path']} -> {e}")
-            
-            ri += 1
+                    file_size = os.path.getsize(full_path)
+                    if file_size == 0:
+                        raise ValueError(f"File is empty (0 bytes): {full_path}")
+                    
+                    print(f"      Size: {file_size} bytes")
+                    
+                    # Cek apakah Pillow/OpenPyxl Image tersedia
+                    if not HAS_PILLOW:
+                        ws2.cell(row=ri, column=3, 
+                                value=f"⚠️ Pillow not installed - {img_filename}")
+                        images_failed += 1
+                    else:
+                        # Coba load image
+                        im = OpenPyxlImage(full_path)
+                        
+                        # Resize jika terlalu besar
+                        if im.width > 300:
+                            ratio = 300 / im.width
+                            im.width = 300
+                            im.height = int(im.height * ratio)
+                        
+                        # Tambahkan ke cell
+                        cell_ref = f"C{ri}"
+                        ws2.add_image(im, cell_ref)
+                        
+                        # Set row height sesuai tinggi gambar
+                        ws2.row_dimensions[ri].height = (im.height * 0.75) + 15
+                        
+                        images_added += 1
+                        print(f"      ✅ Image added successfully")
+                        
+                except Exception as img_error:
+                    error_msg = f"❌ Error: {str(img_error)[:100]}"
+                    ws2.cell(row=ri, column=3, value=error_msg)
+                    images_failed += 1
+                    print(f"      {error_msg}")
+                    # Lanjut ke gambar berikutnya, jangan hentikan export
+                
+                ri += 1
+        
+        print(f"\n📊 Screenshot Summary:")
+        print(f"   ✅ Added: {images_added}")
+        print(f"   ❌ Failed: {images_failed}")
+        
+        # ===== SHEET LOG DATA =====
+        ws3 = wb.create_sheet("Log Data")
+        for i, h in enumerate(["TC ID", "Log Name", "Content"], 1):
+            ws3.cell(row=1, column=i, value=h).font = Font(bold=True)
+        
+        for i, log in enumerate(all_logs, 2):
+            ws3.cell(row=i, column=1, value=log.get('tc_id'))
+            ws3.cell(row=i, column=2, value=log.get('custom_name') or f"Log_{log.get('id', i)}")
+            ws3.cell(row=i, column=3, value=log.get('content', ''))
+            ws3.cell(row=i, column=3).alignment = Alignment(wrap_text=True)
+        
+        # Save ke buffer
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        
+        filename = generate_export_filename(sc, proj)
+        print(f"\n✅ Export completed: {filename}")
+        print(f"   Total screenshots: {images_added} added, {images_failed} failed\n")
+        
+        return buf, filename
+        
+    except Exception as e:
+        error_detail = traceback.format_exc()
+        print(f"\n❌ Export error: {error_detail}")
+        return None, str(e)
     
-    # Log Data sheet
-    ws3 = wb.create_sheet("Log Data")
-    for i, h in enumerate(["TC ID", "Log Name", "Content"], 1):
-        ws3.cell(row=1, column=i, value=h).font = Font(bold=True)
+
     
-    for i, log in enumerate(all_logs, 2):
-        ws3.cell(row=i, column=1, value=log.get('tc_id'))
-        ws3.cell(row=i, column=2, value=log.get('custom_name') or f"Log_{log['id']}")
-        ws3.cell(row=i, column=3, value=log.get('content', ''))
-        ws3.cell(row=i, column=3).alignment = Alignment(wrap_text=True)
-    
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    
-    filename = generate_export_filename(sc, proj)
-    return buf, filename

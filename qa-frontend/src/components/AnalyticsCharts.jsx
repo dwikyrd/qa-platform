@@ -62,7 +62,7 @@ export default function AnalyticsCharts({ sid }) {
       {/* Pie Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-          📊 Distribusi Status Test Case
+          📊 Test Case Status Distribution
         </h3>
         <ResponsiveContainer width="100%" height={250}>
           <PieChart>

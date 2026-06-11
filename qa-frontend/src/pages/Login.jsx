@@ -49,7 +49,7 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             📂 QA Test Manager
           </h1>
-          <p className="text-gray-600">Silakan login untuk melanjutkan</p>
+          <p className="text-gray-600">Login to Continue</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -64,7 +64,7 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Masukkan username"
+                placeholder="Username"
                 required
                 autoFocus
               />
@@ -82,7 +82,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Masukkan password"
+                placeholder="Password"
                 required
               />
             </div>
@@ -93,7 +93,7 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "⏳ Loading..." : "Masuk →"}
+            {loading ? "⏳ Loading..." : "LOGIN →"}
           </button>
         </form>
 

@@ -126,7 +126,7 @@ export default function GlobalAnalytics() {
         {/* Pie Chart */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-            🎫 Distribusi Status Ticket
+            🎫 Ticket Status Distribution
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
@@ -161,7 +161,7 @@ export default function GlobalAnalytics() {
         {/* Bar Chart - Project */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-            📈 Jumlah Ticket per Project
+            📈 Number of Tickets per Project
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={projectTickets}>
@@ -192,7 +192,7 @@ export default function GlobalAnalytics() {
         {/* Monthly Stats */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-            📅 Ticket per Bulan (6 Bulan Terakhir)
+            📅 Tickets / Month (Last 6 Months)
           </h3>
           {periodStats?.monthly && periodStats.monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
@@ -231,7 +231,7 @@ export default function GlobalAnalytics() {
           <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
-              Ticket per Minggu
+              Tickets / Weeks
             </h3>
 
             {/* Filter Bulan */}
@@ -256,7 +256,7 @@ export default function GlobalAnalytics() {
             <div className="mb-3 flex gap-4 text-sm">
               <div className="bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
                 <span className="text-gray-600 dark:text-gray-400">
-                  Total Bulan Ini:{" "}
+                  Totals this Months:{" "}
                 </span>
                 <span className="font-bold text-blue-600 dark:text-blue-400">
                   {periodStats.total_filtered || 0}

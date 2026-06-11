@@ -25,12 +25,22 @@ app = Flask(__name__)
 
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:5173", "http://localhost:3000"],
+        "origins": ["http://localhost:5173", 
+                    "http://localhost:3000",   
+                    "http://147.139.162.197",           # ✅ IP VPS
+                    "http://qa.worklogic.dev",# ✅ Domain (jika sudah ada)
+                    "https://qa.worklogic.dev",   
+                 ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
     }
 })
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
+app.config['SESSION_COOKIE_SECURE'] = False      # ✅ False untuk HTTP, True jika HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'    # ✅ PENTING: Lax untuk cross-origin
+app.config['SESSION_COOKIE_DOMAIN'] = None       # ✅ None untuk IP-based access
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
 app.secret_key = os.environ.get('SECRET_KEY', 'qa-test-manager-secret-key-2026')

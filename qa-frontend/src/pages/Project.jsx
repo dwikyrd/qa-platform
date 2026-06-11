@@ -157,7 +157,7 @@ export default function Project() {
 
     try {
       await scenarioAPI.create(pid, newScenarioTitle.trim());
-      toast.success("Ticket berhasil ditambahkan");
+      toast.success("Ticket Added Successfully");
       setNewScenarioTitle("");
       setShowAddModal(false);
       loadProjectData();
@@ -382,7 +382,7 @@ export default function Project() {
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
           >
             <Plus className="w-5 h-5 inline mr-2" />
-            Tambah Ticket
+            Add Ticket
           </button>
         </div>
 
@@ -432,7 +432,7 @@ export default function Project() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
-                <option value="all">Semua Status</option>
+                <option value="all">All Status</option>
                 <option value="Done">Done</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Not Run">Not Run</option>
@@ -448,7 +448,7 @@ export default function Project() {
                 onChange={(e) => setTesterFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
-                <option value="">👥 Semua Tester</option>
+                <option value="">👥 All Tester</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.full_name || u.username}>
                     {u.full_name || u.username} ({u.role})
@@ -789,7 +789,7 @@ export default function Project() {
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
-              ➕ Tambah Ticket
+              ➕ Add Ticket
             </h2>
 
             <div className="mb-6">
