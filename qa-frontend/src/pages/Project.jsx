@@ -26,6 +26,7 @@ import {
   dashboardAPI,
 } from "../services/api";
 import Navbar from "../components/Navbar";
+import { safeArray } from "../utils/safeArray";
 
 export default function Project() {
   const { pid } = useParams();
@@ -449,7 +450,7 @@ export default function Project() {
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">👥 All Tester</option>
-                {users.map((u) => (
+                {safeArray(users).map((u) => (
                   <option key={u.id} value={u.full_name || u.username}>
                     {u.full_name || u.username} ({u.role})
                   </option>
@@ -551,7 +552,7 @@ export default function Project() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {displayScenarios.map((scenario) => (
+                    {safeArray(displayScenarios).map((scenario) => (
                       <div
                         key={scenario.id}
                         className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-all group"
@@ -740,7 +741,7 @@ export default function Project() {
                         </td>
                       </tr>
                     ) : (
-                      portfolioScenarios.map((scenario) => (
+                      safeArray(portfolioScenarios).map((scenario) => (
                         <tr
                           key={scenario.id}
                           className="border-b border-gray-100 dark:border-gray-700 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"

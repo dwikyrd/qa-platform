@@ -11,6 +11,7 @@ import {
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { attachmentAPI } from "../services/api";
+import { safeArray } from "../utils/safeArray";
 
 export default function TestCaseRow({
   tc,
@@ -93,7 +94,9 @@ export default function TestCaseRow({
         return;
       }
 
-      setImages(imgs.map((img) => ({ src: img.url, title: img.name })));
+      setImages(
+        safeArray(imgs).map((img) => ({ src: img.url, title: img.name })),
+      );
       setLightboxIndex(0);
       setLightboxOpen(true);
     } catch (error) {

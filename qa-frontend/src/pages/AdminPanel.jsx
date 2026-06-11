@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { safeArray } from "../utils/safeArray";
 import {
   ArrowLeft,
   Users,
@@ -293,7 +294,7 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                          {users.map((u) => (
+                          {safeArray(users).map((u) => (
                             <tr
                               key={u.id}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -385,7 +386,7 @@ export default function AdminPanel() {
                           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">👤 Semua User</option>
-                          {users.map((u) => (
+                          {safeArray(users).map((u) => (
                             <option key={u.id} value={u.id}>
                               {u.username}{" "}
                               {u.full_name ? `(${u.full_name})` : ""}
@@ -444,7 +445,7 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                          {logs.map((log) => (
+                          {safeArray(logs).map((log) => (
                             <tr
                               key={log.id}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"

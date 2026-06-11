@@ -10,6 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { attachmentAPI } from "../services/api";
+import { safeArray } from "../utils/safeArray";
 
 export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
   const [attachments, setAttachments] = useState([]);
@@ -292,7 +293,7 @@ export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {attachments.map((item, index) => (
+                  {safeArray(attachments).map((item, index) => (
                     <div
                       key={item.id}
                       className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 flex items-center gap-3 hover:border-blue-300 dark:hover:border-blue-500 transition-colors"

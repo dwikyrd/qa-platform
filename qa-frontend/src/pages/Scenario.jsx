@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { safeArray } from "../utils/safeArray";
 import {
   ArrowLeft,
   Download,
@@ -137,7 +138,9 @@ export default function Scenario() {
     (tcId, field, value, immediate = false) => {
       // 1. Update local state LANGSUNG (agar UI responsif - teks langsung muncul)
       setTestCases((prev) =>
-        prev.map((tc) => (tc.tc_id === tcId ? { ...tc, [field]: value } : tc)),
+        safeArray(prev).map((tc) =>
+          tc.tc_id === tcId ? { ...tc, [field]: value } : tc,
+        ),
       );
 
       // 2. Field 'status' dan 'test_date' → langsung save (bukan typing)
@@ -418,7 +421,9 @@ export default function Scenario() {
                   multiple
                   value={
                     metaData.testers
-                      ? metaData.testers.split(",").map((t) => t.trim())
+                      ? safeArray(metaData.testers.split(",")).map((t) =>
+                          t.trim(),
+                        )
                       : []
                   }
                   onChange={(e) => {
@@ -431,7 +436,7 @@ export default function Scenario() {
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   size={3}
                 >
-                  {users.map((u) => (
+                  {safeArray(users).map((u) => (
                     <option key={u.id} value={u.full_name || u.username}>
                       {u.full_name || u.username} ({u.role})
                     </option>

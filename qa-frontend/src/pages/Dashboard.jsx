@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import GlobalAnalytics from "../components/GlobalAnalytics";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { safeArray } from "../utils/safeArray";
 import {
   FolderOpen,
   Plus,
@@ -187,7 +188,7 @@ export default function Dashboard() {
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
             >
               <option value="">All Tester</option>
-              {users.map((u) => (
+              {safeArray(users).map((u) => (
                 <option key={u.id} value={u.full_name || u.username}>
                   {u.full_name || u.username} ({u.role})
                 </option>
@@ -237,7 +238,7 @@ export default function Dashboard() {
           <div className="p-6">
             {activeTab === "active" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProjects.map((project) => (
+                {safeArray(filteredProjects).map((project) => (
                   <div
                     key={project.id}
                     className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl p-6 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-xl transition-all cursor-pointer group"
@@ -285,7 +286,7 @@ export default function Dashboard() {
 
             {activeTab === "archived" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {archivedProjects.map((project) => (
+                {safeArray(archivedProjects).map((project) => (
                   <div
                     key={project.id}
                     className="bg-gray-100 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl p-6 opacity-75"

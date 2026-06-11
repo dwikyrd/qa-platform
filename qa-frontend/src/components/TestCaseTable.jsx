@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import TestCaseRow from "./TestCaseRow";
 import { testCaseAPI } from "../services/api";
 import toast from "react-hot-toast";
+import { safeArray } from "../utils/safeArray";
 
 export default function TestCaseTable({
   testCases,
@@ -36,7 +37,7 @@ export default function TestCaseTable({
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedTCs(testCases.map((tc) => tc.tc_id));
+      setSelectedTCs(safeArray(testCases).map((tc) => tc.tc_id));
     } else {
       setSelectedTCs([]);
     }
@@ -79,7 +80,7 @@ export default function TestCaseTable({
     const [removed] = newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, removed);
 
-    const newOrderIds = newOrder.map((tc) => tc.tc_id);
+    const newOrderIds = safeArray(newOrder).map((tc) => tc.tc_id);
 
     try {
       await testCaseAPI.reorder(sid, newOrderIds);
@@ -162,7 +163,7 @@ export default function TestCaseTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {testCases.map((tc) => (
+            {safeArray(testCases).map((tc) => (
               <TestCaseRow
                 key={tc.tc_id}
                 tc={tc}

@@ -12,6 +12,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useTheme } from "../context/ThemeContext";
+import { safeArray } from "../utils/safeArray";
 
 const COLORS = {
   pass: "#10b981",
@@ -75,7 +76,7 @@ export default function AnalyticsCharts({ sid }) {
               paddingAngle={5}
               dataKey="value"
             >
-              {pieData.map((entry, index) => (
+              {safeArray(pieData).map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[entry.name.toLowerCase().replace(" ", "_")]}
@@ -94,7 +95,7 @@ export default function AnalyticsCharts({ sid }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="flex justify-center gap-4 mt-4 flex-wrap">
-          {pieData.map((item) => (
+          {safeArray(pieData).map((item) => (
             <div key={item.name} className="flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-full"

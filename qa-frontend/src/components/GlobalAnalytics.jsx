@@ -17,6 +17,7 @@ import {
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAPI } from "../services/api";
 import { Calendar, TrendingUp } from "lucide-react";
+import { safeArray } from "../utils/safeArray";
 
 const COLORS = {
   done: "#10b981",
@@ -81,7 +82,7 @@ export default function GlobalAnalytics() {
     if (!selectedMonth) return;
 
     try {
-      const [year, month] = selectedMonth.split("-").map(Number);
+      const [year, month] = safeArray(selectedMonth.split("-")).map(Number);
       const res = await dashboardAPI.getTicketStatsByPeriod(year, month);
       setPeriodStats(res.data);
     } catch (error) {
@@ -139,7 +140,7 @@ export default function GlobalAnalytics() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {pieData.map((entry, index) => (
+                {safeArray(pieData).map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS[entry.name.toLowerCase().replace(" ", "_")]}
@@ -242,7 +243,7 @@ export default function GlobalAnalytics() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
               >
-                {availableMonths.map((m) => (
+                {safeArray(availableMonths).map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}
                   </option>
@@ -334,7 +335,7 @@ export default function GlobalAnalytics() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {testerStats.map((stat, idx) => {
+                {safeArray(testerStats).map((stat, idx) => {
                   const progress =
                     stat.total > 0
                       ? Math.round(((stat.done || 0) / stat.total) * 100)
