@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   X,
@@ -22,6 +22,51 @@ export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
   const [previewLog, setPreviewLog] = useState(null);
 
   console.log("📥 AttachmentModal render:", { open, tcId, type, sid });
+
+  // ✅ TAMBAHKAN: Handler untuk paste screenshot
+  const handlePaste = useCallback(
+    async (e) => {
+      if (type !== "img" || !open) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          e.preventDefault();
+          const blob = items[i].getAsFile();
+
+          if (blob) {
+            console.log("📋 Image pasted from clipboard:", blob);
+
+            try {
+              toast.loading("Uploading pasted image...");
+              await attachmentAPI.uploadImage(sid, tcId, blob);
+              toast.dismiss();
+              toast.success("Screenshot pasted & uploaded!");
+              await loadAttachments();
+            } catch (error) {
+              toast.dismiss();
+              toast.error("Failed to upload pasted image");
+              console.error("Paste upload error:", error);
+            }
+          }
+          break;
+        }
+      }
+    },
+    [type, open, sid, tcId],
+  );
+
+  // ✅ TAMBAHKAN: Setup & cleanup paste listener
+  useEffect(() => {
+    if (open && type === "img") {
+      document.addEventListener("paste", handlePaste);
+      return () => {
+        document.removeEventListener("paste", handlePaste);
+      };
+    }
+  }, [open, type, handlePaste]);
 
   useEffect(() => {
     if (open && tcId && sid) {
@@ -235,6 +280,14 @@ export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
                       KB)
                     </p>
                   )}
+                  {/* ✅ TAMBAHKAN: Hint untuk paste */}
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    💡 Tip: Copy screenshot lalu tekan{" "}
+                    <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs font-mono">
+                      Ctrl+V
+                    </kbd>{" "}
+                    untuk paste langsung
+                  </p>
                 </div>
               ) : (
                 // FORM UPLOAD LOG
@@ -289,6 +342,7 @@ export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
                   <p className="text-sm mt-2">
                     Upload {type === "img" ? "gambar" : "log"} pertama Anda
                     menggunakan form di atas
+                    {type === "img" && " atau paste dengan Ctrl+V"}
                   </p>
                 </div>
               ) : (

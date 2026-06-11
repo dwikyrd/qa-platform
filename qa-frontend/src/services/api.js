@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base config
 const api = axios.create({
-  baseURL: "/api", // Sesuaikan dengan port Flask Anda
+  baseURL: "http://localhost:5000/api", // Sesuaikan dengan port Flask Anda
   headers: {
     "Content-Type": "application/json",
   },
@@ -262,53 +262,5 @@ export const importAPI = {
     });
   },
 };
-
-// ✅ TAMBAHKAN: Response interceptor untuk handle error
-api.interceptors.response.use(
-  (response) => {
-    // Jika response.data adalah object dengan property 'error', return array kosong
-    if (
-      response.data &&
-      typeof response.data === "object" &&
-      response.data.error
-    ) {
-      console.warn("API returned error:", response.data.error);
-      response.data = []; // Return array kosong agar tidak crash
-    }
-    return response;
-  },
-  (error) => {
-    console.error("API Error:", error);
-
-    // Jika 401 Unauthorized, redirect ke login
-    if (error.response?.status === 401) {
-      if (!window.location.pathname.includes("/login")) {
-        localStorage.removeItem("user");
-        window.location.href = "/login";
-      }
-    }
-
-    return Promise.reject(error);
-  },
-);
-
-// Request interceptor - tambah token jika ada
-api.interceptors.request.use(
-  (config) => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        if (userData.token) {
-          config.headers.Authorization = `Bearer ${userData.token}`;
-        }
-      } catch (e) {
-        console.error("Error parsing user:", e);
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
 
 export default api;
