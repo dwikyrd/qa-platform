@@ -175,36 +175,6 @@ export default function Dashboard() {
           <GlobalAnalytics />
         </div>
 
-        {/* Filter Tester (FITUR BARU) */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-gray-400" />
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filter by Tester:
-            </label>
-            <select
-              value={testerFilter}
-              onChange={(e) => setTesterFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-            >
-              <option value="">All Tester</option>
-              {safeArray(users).map((u) => (
-                <option key={u.id} value={u.full_name || u.username}>
-                  {u.full_name || u.username} ({u.role})
-                </option>
-              ))}
-            </select>
-            {testerFilter && (
-              <button
-                onClick={() => setTesterFilter("")}
-                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
-              >
-                Clear Filter
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Tabs & Projects */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg mb-6 transition-colors">
           <div className="border-b border-gray-200 dark:border-gray-700">
