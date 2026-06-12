@@ -174,13 +174,19 @@ export default function AttachmentModal({ open, onClose, tcId, type, sid }) {
   };
 
   const handleRename = async (id, newName) => {
+    console.log("✏️ handleRename called:", { id, newName });
+
     try {
-      await attachmentAPI.rename(sid, id, type, newName);
+      const response = await attachmentAPI.rename(sid, id, type, newName);
+      console.log("✅ Rename response:", response.data);
+
       toast.success("Rename berhasil");
+
+      // ✅ PENTING: Reload attachments untuk update UI
       await loadAttachments();
     } catch (error) {
-      console.error("Rename error:", error);
-      toast.error("Gagal rename");
+      console.error("❌ Rename error:", error);
+      toast.error("Gagal rename: " + (error.response?.data?.error || ""));
     }
   };
 

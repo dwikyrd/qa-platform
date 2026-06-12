@@ -505,9 +505,9 @@ def register_api_routes(app):
     @app.route('/api/rename_attachment/<int:sid>', methods=['POST'])
     @login_required
     def api_rename_attachment(sid):
-        data = request.json
-        rename_attachment(sid, data['id'], data.get('type', 'img'), data.get('name', ''))
-        return jsonify({'success': True})
+        """Rename attachment - proxy ke models.rename_attachment"""
+        from models import rename_attachment
+        return rename_attachment(sid)
 
     @app.route('/api/reorder_attachments/<int:sid>', methods=['POST'])
     @login_required

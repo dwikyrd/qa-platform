@@ -634,13 +634,104 @@ def delete_log(sid, log_id):
     execute_delete('log_attachments', {'id': log_id, 'scenario_id': sid})
 
 
-def rename_attachment(sid, att_id, att_type, new_name):
-    """Rename attachment"""
+def rename_attachment(sid):
+    """Rename attachment - update database DAN rename file fisik"""
+    import os
+    import shutil
+    from flask import request, jsonify, current_app
+    
+    data = request.json
+    att_id = data.get('id')
+    att_type = data.get('type')
+    new_name = data.get('name', '').strip()
+    
+    print(f"\n📝 Rename Request:")
+    print(f"   - SID: {sid}")
+    print(f"   - ID: {att_id}")
+    print(f"   - Type: {att_type}")
+    print(f"   - New Name: {new_name}")
+    
+    if not att_id or not att_type or not new_name:
+        return jsonify({'error': 'Missing required fields'}), 400
+    
     table = 'screenshots' if att_type == 'img' else 'log_attachments'
-    execute_update(table,
-                   {'custom_name': new_name},
-                   {'id': att_id, 'scenario_id': sid})
-
+    
+    try:
+        # 1. Ambil data lama dari database menggunakan query_db
+        results = query_db(table, filters={'id': att_id, 'scenario_id': sid})
+        
+        if not results:
+            return jsonify({'error': 'Attachment not found'}), 404
+        
+        old_file_path = results[0].get('file_path')
+        old_custom_name = results[0].get('custom_name')
+        
+        print(f"   - Old file_path: {old_file_path}")
+        print(f"   - Old custom_name: {old_custom_name}")
+        
+        # 2. Update custom_name di database
+        execute_update(table, {'custom_name': new_name}, {'id': att_id, 'scenario_id': sid})
+        
+        print(f"   ✓ Database updated: custom_name = {new_name}")
+        
+        # 3. ✅ RENAME FILE FISIK (jika type = img dan file ada)
+        if att_type == 'img' and old_file_path:
+            upload_dir = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+            old_full_path = os.path.join(upload_dir, old_file_path)
+            
+            print(f"   - Checking file: {old_full_path}")
+            print(f"   - File exists: {os.path.exists(old_full_path)}")
+            
+            if os.path.exists(old_full_path):
+                # Extract extension
+                _, ext = os.path.splitext(old_file_path)
+                
+                # Sanitize nama baru
+                safe_name = "".join(c for c in new_name if c.isalnum() or c in ('-', '_', '.', ' ')).strip()
+                
+                if not safe_name:
+                    safe_name = f"attachment_{att_id}"
+                
+                if not safe_name.lower().endswith(ext.lower()):
+                    safe_name += ext
+                
+                new_full_path = os.path.join(upload_dir, safe_name)
+                
+                # Hindari overwrite
+                if os.path.exists(new_full_path) and old_full_path != new_full_path:
+                    base, ext2 = os.path.splitext(safe_name)
+                    counter = 1
+                    while os.path.exists(new_full_path):
+                        safe_name = f"{base}_{counter}{ext2}"
+                        new_full_path = os.path.join(upload_dir, safe_name)
+                        counter += 1
+                
+                # Rename file
+                if old_full_path != new_full_path:
+                    shutil.move(old_full_path, new_full_path)
+                    
+                    # Update file_path di database
+                    execute_update(table, {'file_path': safe_name}, {'id': att_id, 'scenario_id': sid})
+                    
+                    print(f"   ✓ File renamed: {old_file_path} → {safe_name}")
+                else:
+                    print(f"   ℹ️  File name unchanged")
+            else:
+                print(f"   ⚠️  File not found on disk: {old_full_path}")
+        
+        print(f"   ✅ Rename successful!\n")
+        
+        return jsonify({
+            'success': True,
+            'id': att_id,
+            'new_name': new_name
+        })
+        
+    except Exception as e:
+        print(f"   ❌ Rename failed: {str(e)}\n")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 def reorder_attachments(sid, tc_id, att_type, order):
     """Reorder attachments"""
