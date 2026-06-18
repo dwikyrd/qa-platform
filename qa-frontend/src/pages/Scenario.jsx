@@ -39,6 +39,8 @@ export default function Scenario() {
   const [highlightedTC, setHighlightedTC] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [user, setUser] = useState(null);
+  const scrollPositionRef = useRef(0);
+  const TABLE_CONTAINER_REF = useRef(null);
 
   // Metadata edit state
   const [showMetaEdit, setShowMetaEdit] = useState(false);
@@ -65,9 +67,78 @@ export default function Scenario() {
     loadUser();
     loadUsers();
     loadScenarioData();
-    // Auto-refresh stats setiap 30 detik
     const interval = setInterval(() => loadSummary(), 30000);
-    return () => clearInterval(interval);
+
+    // ✅ AUTO-SCROLL KE TOOLBAR SAAT PAGE LOAD/RELOAD
+    const timer = setTimeout(() => {
+      const toolbar = document.querySelector(".sticky-toolbar");
+      if (toolbar) {
+        toolbar.scrollIntoView({ behavior: "instant", block: "start" });
+      }
+    }, 500);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
+  }, [sid]);
+
+  // Replace useEffect yang restore scroll position dengan ini:
+  useEffect(() => {
+    // Restore scroll position saat component mount
+    const savedPosition = sessionStorage.getItem(`scenario-${sid}-scroll`);
+
+    // Function untuk scroll ke posisi yang benar
+    const scrollToPosition = () => {
+      if (TABLE_CONTAINER_REF.current) {
+        if (savedPosition) {
+          const position = parseInt(savedPosition, 10);
+          TABLE_CONTAINER_REF.current.scrollTop = position;
+        } else {
+          // Jika tidak ada saved position, scroll ke toolbar
+          const toolbar = document.querySelector(".sticky-toolbar");
+          if (toolbar) {
+            toolbar.scrollIntoView({ behavior: "instant", block: "start" });
+          }
+        }
+      }
+    };
+
+    // Delay agar data & DOM sudah render
+    const timer = setTimeout(scrollToPosition, 300);
+
+    return () => {
+      clearTimeout(timer);
+      // Save scroll position saat component unmount
+      if (TABLE_CONTAINER_REF.current) {
+        sessionStorage.setItem(
+          `scenario-${sid}-scroll`,
+          TABLE_CONTAINER_REF.current.scrollTop.toString(),
+        );
+      }
+    };
+  }, [sid]);
+
+  // Restore scroll position saat component mount
+  useEffect(() => {
+    const savedPosition = sessionStorage.getItem(`scenario-${sid}-scroll`);
+    if (savedPosition && TABLE_CONTAINER_REF.current) {
+      const position = parseInt(savedPosition, 10);
+      setTimeout(() => {
+        if (TABLE_CONTAINER_REF.current) {
+          TABLE_CONTAINER_REF.current.scrollTop = position;
+        }
+      }, 300);
+    }
+
+    return () => {
+      if (TABLE_CONTAINER_REF.current) {
+        sessionStorage.setItem(
+          `scenario-${sid}-scroll`,
+          TABLE_CONTAINER_REF.current.scrollTop.toString(),
+        );
+      }
+    };
   }, [sid]);
 
   const loadUser = () => {
@@ -259,11 +330,36 @@ export default function Scenario() {
     }
   };
 
+  // Fungsi untuk save scroll position
+  const saveScrollPosition = useCallback(() => {
+    if (TABLE_CONTAINER_REF.current) {
+      sessionStorage.setItem(
+        `scenario-${sid}-scroll`,
+        TABLE_CONTAINER_REF.current.scrollTop.toString(),
+      );
+    }
+  }, [sid]);
+
+  // Update handleToggleReview untuk save & restore scroll position
   const handleToggleReview = async (tcId) => {
+    saveScrollPosition(); // ✅ Save sebelum reload
+
     try {
       await testCaseAPI.toggleReview(sid, tcId);
       toast.success("Review status updated");
       await loadScenarioData();
+
+      // Restore scroll position setelah data load
+      setTimeout(() => {
+        if (TABLE_CONTAINER_REF.current) {
+          const savedPosition = sessionStorage.getItem(
+            `scenario-${sid}-scroll`,
+          );
+          if (savedPosition) {
+            TABLE_CONTAINER_REF.current.scrollTop = parseInt(savedPosition, 10);
+          }
+        }
+      }, 300); // Delay lebih lama agar DOM sudah render
     } catch (error) {
       toast.error("Gagal update review status");
     }
@@ -299,7 +395,7 @@ export default function Scenario() {
       <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto px-4 py-6">
-        {/* Header */}
+        {/* Header - Akan hilang saat scroll */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate(`/project/${project?.id}`)}
@@ -324,7 +420,7 @@ export default function Scenario() {
           </button>
         </div>
 
-        {/* Metadata Card */}
+        {/* Metadata Card - Akan hilang saat scroll */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -476,7 +572,7 @@ export default function Scenario() {
           )}
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - Akan hilang saat scroll */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
             <SummaryCard
@@ -513,76 +609,84 @@ export default function Scenario() {
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-          <div className="flex flex-wrap gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="all">All Status</option>
-              <option value="Not Run">Not Run</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Pass">Pass</option>
-              <option value="Fail">Fail</option>
-            </select>
-
-            <button
-              onClick={() => setAiModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              AI Multi-Gen
-            </button>
-
-            <button
-              onClick={() => setImportModal(true)}
-              className="px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Import Excel
-            </button>
-
-            <button
-              onClick={handleAddRow}
-              className="px-4 py-2 border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Row
-            </button>
-
-            {selectedTCs.length > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="px-4 py-2 border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+        {/* ✅ STICKY TOOLBAR - HANYA BUTTONS (yang Anda sebutkan) */}
+        <div className="sticky-toolbar sticky top-0 z-30 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-sm py-3 mb-6 shadow-lg border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
-                <Trash2 className="w-4 h-4" />
-                Hapus Terpilih ({selectedTCs.length})
+                <option value="all">All Status</option>
+                <option value="Not Run">Not Run</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Pass">Pass</option>
+                <option value="Fail">Fail</option>
+              </select>
+
+              <button
+                onClick={() => setAiModal(true)}
+                className="px-3 py-1.5 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                AI Multi-Gen
               </button>
-            )}
+
+              <button
+                onClick={() => setImportModal(true)}
+                className="px-3 py-1.5 text-sm border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-1.5"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Import Excel
+              </button>
+
+              <button
+                onClick={handleAddRow}
+                className="px-3 py-1.5 text-sm border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Row
+              </button>
+
+              {selectedTCs.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1.5 text-sm border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Hapus ({selectedTCs.length})
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Test Case Table */}
-        <TestCaseTable
-          testCases={filteredTestCases}
-          selectedTCs={selectedTCs}
-          setSelectedTCs={setSelectedTCs}
-          highlightedTC={highlightedTC}
-          setHighlightedTC={setHighlightedTC}
-          onUpdateCell={handleUpdateCell}
-          onDelete={handleDeleteRow}
-          onCellBlur={handleCellBlur}
-          onCopy={handleCopyTC}
-          onOpenAttachment={(tcId, type) => {
-            console.log("📍 onOpenAttachment called with:", { tcId, type });
-            setAttachModal({ open: true, tcId, type });
-          }}
-          onToggleReview={handleToggleReview}
-          userRole={user?.role}
-          sid={sid}
-        />
+        {/* Test Case Table - dengan ref dan onScroll handler */}
+        <div
+          ref={TABLE_CONTAINER_REF}
+          onScroll={saveScrollPosition}
+          className="max-h-[calc(100vh-150px)] overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"
+        >
+          <TestCaseTable
+            testCases={filteredTestCases}
+            selectedTCs={selectedTCs}
+            setSelectedTCs={setSelectedTCs}
+            highlightedTC={highlightedTC}
+            setHighlightedTC={setHighlightedTC}
+            onUpdateCell={handleUpdateCell}
+            onDelete={handleDeleteRow}
+            onCellBlur={handleCellBlur}
+            onCopy={handleCopyTC}
+            onOpenAttachment={(tcId, type) => {
+              console.log("📍 onOpenAttachment called with:", { tcId, type });
+              setAttachModal({ open: true, tcId, type });
+            }}
+            onToggleReview={handleToggleReview}
+            userRole={user?.role}
+            sid={sid}
+          />
+        </div>
       </div>
 
       {/* Modals */}
@@ -619,6 +723,7 @@ export default function Scenario() {
   );
 }
 
+// SummaryCard component tetap sama
 function SummaryCard({ label, value, color, icon }) {
   const colors = {
     blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400",
