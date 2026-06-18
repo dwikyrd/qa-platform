@@ -13,7 +13,6 @@ import openpyxl
 # IMPORTS - WAJIB ADA
 # ============================================================
 from database import query_db, execute_insert, execute_update, execute_delete
-
 from models import (
     # Projects
     get_all_projects, get_project, create_project, update_project,
@@ -36,7 +35,6 @@ from models import (
     toggle_review_status, get_review_stats,
     get_ticket_stats_by_period, get_tickets_by_tester,
 )
-
 from auth import (
     login_required, admin_required, reviewer_required,
     authenticate, login_user, logout_user, log_activity,
@@ -45,13 +43,11 @@ from auth import (
     create_user_admin, update_user, delete_user,
     get_activity_logs,
 )
-
 from utils import call_ai_api
-
 
 def register_api_routes(app):
     UPLOAD_FOLDER = app.config['UPLOAD_FOLDER']
-
+    
     # ============================================================
     # AUTH ENDPOINTS
     # ============================================================
@@ -130,7 +126,7 @@ def register_api_routes(app):
             return jsonify({'error': error}), 400
         
         log_activity(session.get('user_id'), session.get('username'),
-                     'create_project', target_type='project',
+                      'create_project', target_type='project',
                      details=f'Created project: "{name}"')
         return jsonify({'success': True, 'project': project})
 
@@ -234,7 +230,7 @@ def register_api_routes(app):
             return jsonify({'error': 'End Date tidak boleh sebelum Start Date'}), 400
         
         update_scenario_meta(sid, d.get('link', ''), d.get('testers', ''),
-                             d.get('start_date', ''), d.get('end_date', ''))
+                              d.get('start_date', ''), d.get('end_date', ''))
         return jsonify({'success': True})
 
     @app.route('/api/archive_scenario/<int:sid>', methods=['POST'])
@@ -242,7 +238,7 @@ def register_api_routes(app):
     def api_archive_scenario(sid):
         archive_scenario(sid, True)
         log_activity(session.get('user_id'), session.get('username'),
-                     'archive_ticket', target_type='scenario', target_id=sid)
+                      'archive_ticket', target_type='scenario', target_id=sid)
         return jsonify({'success': True})
 
     @app.route('/api/delete_scenario/<int:sid>', methods=['POST'])
@@ -255,7 +251,7 @@ def register_api_routes(app):
     def api_restore_scenario(sid):
         archive_scenario(sid, False)
         log_activity(session.get('user_id'), session.get('username'),
-                     'restore_ticket', target_type='scenario', target_id=sid)
+                      'restore_ticket', target_type='scenario', target_id=sid)
         return jsonify({'success': True})
 
     @app.route('/api/hard_delete_scenario/<int:sid>', methods=['POST'])
@@ -263,7 +259,7 @@ def register_api_routes(app):
     def api_hard_delete_scenario(sid):
         hard_delete_scenario(sid)
         log_activity(session.get('user_id'), session.get('username'),
-                     'hard_delete_ticket', target_type='scenario', target_id=sid)
+                      'hard_delete_ticket', target_type='scenario', target_id=sid)
         return jsonify({'success': True})
 
     # ============================================================
@@ -324,16 +320,27 @@ def register_api_routes(app):
     @app.route('/api/reorder_tc/<int:sid>', methods=['POST'])
     @login_required
     def api_reorder_tc(sid):
+        """Reorder test cases dengan before/after tracking"""
         order = request.json.get('order', [])
-        reorder_test_cases(sid, order)
-        return jsonify({'success': True})
+        if not order:
+            return jsonify({'error': 'Order array kosong'}), 400
+        
+        # reorder_test_cases sekarang return hasil resequence
+        result = reorder_test_cases(sid, order)
+        
+        return jsonify({
+            'success': True,
+            'before': result.get('before', []),
+            'after': result.get('after', []),
+            'mapping': result.get('mapping', {})
+        })
 
     @app.route('/api/summary/<int:sid>', methods=['GET'])
     def api_summary(sid):
         return jsonify(get_test_case_stats(sid))
 
     # ============================================================
-    # REVIEW ENDPOINTS (FITUR BARU #1)
+    # REVIEW ENDPOINTS
     # ============================================================
     @app.route('/api/toggle_review/<int:sid>', methods=['POST'])
     @reviewer_required
@@ -430,9 +437,9 @@ def register_api_routes(app):
             if file_size == 0:
                 raise Exception("File kosong (0 bytes)")
 
-            # 5. Simpan ke Database - PASTIKAN file_path disimpan dengan benar
+            # 5. Simpan ke Database
             from models import save_screenshot
-            result = save_screenshot(sid, tc_id, name)  # Simpan nama file saja, bukan full path
+            result = save_screenshot(sid, tc_id, name)
             
             print(f"   ✓ Saved to DB. Result: {result}")
             
@@ -455,11 +462,10 @@ def register_api_routes(app):
             
             print(f"   ✅ Upload successful!\n")
             
-            # ✅ RETURN file_path yang benar (hanya nama file, bukan full path)
             return jsonify({
                 'success': True, 
-                'path': name,  # Hanya nama file
-                'file_path': name,  # Tambahkan juga sebagai file_path
+                'path': name,
+                'file_path': name,
                 'count': count
             })
             
@@ -560,7 +566,7 @@ def register_api_routes(app):
         try:
             # 1. Validasi file
             if 'file' not in request.files:
-                print("❌ No file in request")
+                print(" No file in request")
                 return jsonify({'error': 'Tidak ada file yang diupload'}), 400
             
             file = request.files['file']
@@ -570,7 +576,7 @@ def register_api_routes(app):
             if not file.filename.lower().endswith('.xlsx'):
                 return jsonify({'error': 'Hanya file .xlsx yang diperbolehkan'}), 400
             
-            print(f"\n Import Excel Request:")
+            print(f"\n📥 Import Excel Request:")
             print(f"   - SID: {sid}")
             print(f"   - File: {file.filename}")
             
@@ -595,7 +601,7 @@ def register_api_routes(app):
                 # Cari baris yang mengandung "TC ID" atau "TEST CASE"
                 if 'TC ID' in row_str or ('TEST' in row_str and 'CASE' in row_str):
                     header_row = [str(cell.value).strip().lower() if cell.value else '' 
-                                for cell in ws[i]]
+                                 for cell in ws[i]]
                     header_row_idx = i
                     print(f"   ✓ Header found at row {i}: {header_row}")
                     break
@@ -767,7 +773,7 @@ def register_api_routes(app):
         return jsonify(get_project_ticket_counts())
 
     # ============================================================
-    # DASHBOARD STATS (FITUR BARU #3)
+    # DASHBOARD STATS
     # ============================================================
     @app.route('/api/ticket_stats_by_period', methods=['GET'])
     @login_required
@@ -777,7 +783,7 @@ def register_api_routes(app):
         month = request.args.get('month', type=int)
         
         return jsonify(get_ticket_stats_by_period(year=year, month=month))
-    
+
     @app.route('/api/available_months', methods=['GET'])
     @login_required
     def api_available_months():
@@ -829,7 +835,7 @@ def register_api_routes(app):
         return jsonify(get_tickets_by_tester())
 
     # ============================================================
-    # USER LIST (FITUR BARU #4 - untuk dropdown tester)
+    # USER LIST
     # ============================================================
     @app.route('/api/users_list', methods=['GET'])
     @login_required
@@ -860,8 +866,8 @@ def register_api_routes(app):
             return jsonify({'error': error}), 400
         
         log_activity(session.get('user_id'), session.get('username'),
-                     'create_user', target_type='user', target_id=user_id,
-                     details=f'Created user: {data.get("username")}')
+                    'create_user', target_type='user', target_id=user_id,
+                    details=f'Created user: {data.get("username")}')
         return jsonify({'success': True, 'user_id': user_id})
 
     @app.route('/api/admin/users/<int:user_id>', methods=['PUT'])

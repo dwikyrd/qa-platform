@@ -83,12 +83,10 @@ export default function Scenario() {
     };
   }, [sid]);
 
-  // Replace useEffect yang restore scroll position dengan ini:
+  // Restore scroll position saat component mount
   useEffect(() => {
-    // Restore scroll position saat component mount
     const savedPosition = sessionStorage.getItem(`scenario-${sid}-scroll`);
 
-    // Function untuk scroll ke posisi yang benar
     const scrollToPosition = () => {
       if (TABLE_CONTAINER_REF.current) {
         if (savedPosition) {
@@ -119,28 +117,6 @@ export default function Scenario() {
     };
   }, [sid]);
 
-  // Restore scroll position saat component mount
-  useEffect(() => {
-    const savedPosition = sessionStorage.getItem(`scenario-${sid}-scroll`);
-    if (savedPosition && TABLE_CONTAINER_REF.current) {
-      const position = parseInt(savedPosition, 10);
-      setTimeout(() => {
-        if (TABLE_CONTAINER_REF.current) {
-          TABLE_CONTAINER_REF.current.scrollTop = position;
-        }
-      }, 300);
-    }
-
-    return () => {
-      if (TABLE_CONTAINER_REF.current) {
-        sessionStorage.setItem(
-          `scenario-${sid}-scroll`,
-          TABLE_CONTAINER_REF.current.scrollTop.toString(),
-        );
-      }
-    };
-  }, [sid]);
-
   const loadUser = () => {
     const currentUser = authAPI.getCurrentUser();
     setUser(currentUser);
@@ -159,7 +135,6 @@ export default function Scenario() {
     try {
       setLoading(true);
       const response = await scenarioAPI.getById(sid);
-
       setScenario(response.data.scenario);
       setProject(response.data.project);
       setTestCases(response.data.test_cases || []);
@@ -207,23 +182,21 @@ export default function Scenario() {
 
   const handleUpdateCell = useCallback(
     (tcId, field, value, immediate = false) => {
-      // 1. Update local state LANGSUNG (agar UI responsif - teks langsung muncul)
+      // 1. Update local state LANGSUNG
       setTestCases((prev) =>
         safeArray(prev).map((tc) =>
           tc.tc_id === tcId ? { ...tc, [field]: value } : tc,
         ),
       );
 
-      // 2. Field 'status' dan 'test_date' → langsung save (bukan typing)
+      // 2. Field 'status' dan 'test_date' → langsung save
       if (field === "status" || field === "test_date" || immediate) {
-        // Clear timer jika ada
         const key = `${tcId}-${field}`;
         if (debounceTimers.current[key]) {
           clearTimeout(debounceTimers.current[key]);
           delete debounceTimers.current[key];
         }
 
-        // Langsung call API
         testCaseAPI
           .update(sid, tcId, field, value)
           .then(() => {
@@ -238,43 +211,116 @@ export default function Scenario() {
       // 3. Field lainnya (textarea) → DEBOUNCE 800ms
       const key = `${tcId}-${field}`;
 
-      // Clear timer sebelumnya
       if (debounceTimers.current[key]) {
         clearTimeout(debounceTimers.current[key]);
       }
 
-      // Set timer baru
       debounceTimers.current[key] = setTimeout(() => {
         testCaseAPI.update(sid, tcId, field, value).catch((error) => {
           toast.error("Gagal save");
         });
         delete debounceTimers.current[key];
-      }, 800); // ⏱️ Tunggu 800ms setelah user berhenti mengetik
+      }, 800);
     },
     [sid],
   );
 
   const handleCellBlur = useCallback(() => {
-    // Flush semua pending timers
     Object.keys(debounceTimers.current).forEach((key) => {
       clearTimeout(debounceTimers.current[key]);
       delete debounceTimers.current[key];
     });
   }, []);
 
-  // ✅ Cleanup timers saat component unmount
   useEffect(() => {
     return () => {
       Object.values(debounceTimers.current).forEach(clearTimeout);
     };
   }, []);
 
+  // ✅ HANDLE REORDER DENGAN BEFORE/AFTER TRACKING
+  const handleReorder = async (newOrder) => {
+    console.log("\n🚀 DRAG & DROP REORDER START");
+
+    // 1. Ambil array tc_id dari state baru setelah di-drag
+    const newOrderIds = newOrder.map((tc) => tc.tc_id);
+    console.log("Urutan baru:", newOrderIds);
+
+    try {
+      // 2. Panggil API Backend
+      const response = await testCaseAPI.reorder(sid, newOrderIds);
+      const data = response.data;
+
+      // 3. Log Before & After
+      if (data.before && data.after) {
+        console.group("📋 REORDER TRACKING LOG");
+
+        console.log("BEFORE (Urutan Lama):");
+        data.before.forEach((item, idx) => {
+          console.log(
+            `   [${idx + 1}] ${item.tc_id} | Attachments: ${item.attachments}`,
+          );
+        });
+
+        console.log("AFTER (Urutan Baru):");
+        data.after.forEach((item, idx) => {
+          console.log(
+            `   [${idx + 1}] ${item.tc_id} | Attachments: ${item.attachments}`,
+          );
+        });
+
+        // Validasi cepat di frontend
+        const totalBefore = data.before.reduce(
+          (sum, item) => sum + item.attachments,
+          0,
+        );
+        const totalAfter = data.after.reduce(
+          (sum, item) => sum + item.attachments,
+          0,
+        );
+
+        if (totalBefore === totalAfter) {
+          console.log(
+            `✅ SUCCESS: Total attachments aman (${totalAfter} files).`,
+          );
+        } else {
+          console.error(
+            `❌ ERROR: Attachment hilang! Before: ${totalBefore}, After: ${totalAfter}`,
+          );
+          toast.error("Ada attachment yang hilang saat reorder!");
+        }
+
+        console.groupEnd();
+      }
+
+      toast.success("Urutan test case diperbarui");
+
+      // 4. WAJIB: Reload data dari server!
+      await loadScenarioData();
+
+      // 5. Kembalikan posisi scroll
+      setTimeout(() => {
+        if (TABLE_CONTAINER_REF.current) {
+          const savedPosition = sessionStorage.getItem(
+            `scenario-${sid}-scroll`,
+          );
+          if (savedPosition) {
+            TABLE_CONTAINER_REF.current.scrollTop = parseInt(savedPosition, 10);
+          }
+        }
+      }, 300);
+    } catch (error) {
+      console.error("❌ Reorder failed:", error);
+      toast.error("Gagal mengubah urutan");
+      await loadScenarioData();
+    }
+  };
+
   const handleDeleteRow = async (tcId) => {
     if (!confirm(`Hapus test case ${tcId}?`)) return;
     try {
       await testCaseAPI.delete(sid, tcId);
       toast.success("Test case deleted");
-      // Reload semua data untuk update penomoran
       await loadScenarioData();
     } catch (error) {
       toast.error("Gagal delete");
@@ -284,12 +330,10 @@ export default function Scenario() {
   const handleBulkDelete = async () => {
     if (selectedTCs.length === 0) return;
     if (!confirm(`Hapus ${selectedTCs.length} test case?`)) return;
-
     try {
       await testCaseAPI.bulkDelete(sid, selectedTCs);
       setSelectedTCs([]);
       toast.success(`${selectedTCs.length} test cases deleted`);
-      // Reload semua data untuk update penomoran
       await loadScenarioData();
     } catch (error) {
       toast.error("Gagal bulk delete");
@@ -307,7 +351,6 @@ export default function Scenario() {
   };
 
   const handleExport = () => {
-    // Gunakan anchor tag untuk memastikan download
     const link = document.createElement("a");
     link.href = `/export/${sid}`;
     link.target = "_blank";
@@ -323,14 +366,12 @@ export default function Scenario() {
       await scenarioAPI.updateMeta(sid, metaData);
       toast.success("Metadata updated");
       setShowMetaEdit(false);
-      // Update local state
       setScenario({ ...scenario, ...metaData });
     } catch (error) {
       toast.error("Gagal update metadata");
     }
   };
 
-  // Fungsi untuk save scroll position
   const saveScrollPosition = useCallback(() => {
     if (TABLE_CONTAINER_REF.current) {
       sessionStorage.setItem(
@@ -340,16 +381,13 @@ export default function Scenario() {
     }
   }, [sid]);
 
-  // Update handleToggleReview untuk save & restore scroll position
   const handleToggleReview = async (tcId) => {
-    saveScrollPosition(); // ✅ Save sebelum reload
-
+    saveScrollPosition();
     try {
       await testCaseAPI.toggleReview(sid, tcId);
       toast.success("Review status updated");
       await loadScenarioData();
 
-      // Restore scroll position setelah data load
       setTimeout(() => {
         if (TABLE_CONTAINER_REF.current) {
           const savedPosition = sessionStorage.getItem(
@@ -359,7 +397,7 @@ export default function Scenario() {
             TABLE_CONTAINER_REF.current.scrollTop = parseInt(savedPosition, 10);
           }
         }
-      }, 300); // Delay lebih lama agar DOM sudah render
+      }, 300);
     } catch (error) {
       toast.error("Gagal update review status");
     }
@@ -376,7 +414,6 @@ export default function Scenario() {
     }
   };
 
-  // Filter test cases berdasarkan status
   const filteredTestCases =
     statusFilter === "all"
       ? testCases
@@ -395,7 +432,7 @@ export default function Scenario() {
       <Navbar user={user} onLogout={handleLogout} />
 
       <div className="container mx-auto px-4 py-6">
-        {/* Header - Akan hilang saat scroll */}
+        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate(`/project/${project?.id}`)}
@@ -420,7 +457,7 @@ export default function Scenario() {
           </button>
         </div>
 
-        {/* Metadata Card - Akan hilang saat scroll */}
+        {/* Metadata Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -572,7 +609,7 @@ export default function Scenario() {
           )}
         </div>
 
-        {/* Summary Cards - Akan hilang saat scroll */}
+        {/* Summary Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
             <SummaryCard
@@ -609,7 +646,7 @@ export default function Scenario() {
           </div>
         )}
 
-        {/* ✅ STICKY TOOLBAR - HANYA BUTTONS (yang Anda sebutkan) */}
+        {/* ✅ STICKY TOOLBAR */}
         <div className="sticky-toolbar sticky top-0 z-30 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-sm py-3 mb-6 shadow-lg border-b border-gray-200 dark:border-gray-700">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3">
             <div className="flex flex-wrap gap-2">
@@ -629,24 +666,21 @@ export default function Scenario() {
                 onClick={() => setAiModal(true)}
                 className="px-3 py-1.5 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-1.5"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                AI Multi-Gen
+                <Sparkles className="w-3.5 h-3.5" /> AI Multi-Gen
               </button>
 
               <button
                 onClick={() => setImportModal(true)}
                 className="px-3 py-1.5 text-sm border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-1.5"
               >
-                <Upload className="w-3.5 h-3.5" />
-                Import Excel
+                <Upload className="w-3.5 h-3.5" /> Import Excel
               </button>
 
               <button
                 onClick={handleAddRow}
                 className="px-3 py-1.5 text-sm border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5" />
-                Add Row
+                <Plus className="w-3.5 h-3.5" /> Add Row
               </button>
 
               {selectedTCs.length > 0 && (
@@ -654,15 +688,15 @@ export default function Scenario() {
                   onClick={handleBulkDelete}
                   className="px-3 py-1.5 text-sm border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1.5"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Hapus ({selectedTCs.length})
+                  <Trash2 className="w-3.5 h-3.5" /> Hapus ({selectedTCs.length}
+                  )
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Test Case Table - dengan ref dan onScroll handler */}
+        {/* Test Case Table */}
         <div
           ref={TABLE_CONTAINER_REF}
           onScroll={saveScrollPosition}
@@ -676,6 +710,7 @@ export default function Scenario() {
             setHighlightedTC={setHighlightedTC}
             onUpdateCell={handleUpdateCell}
             onDelete={handleDeleteRow}
+            onReorder={handleReorder}
             onCellBlur={handleCellBlur}
             onCopy={handleCopyTC}
             onOpenAttachment={(tcId, type) => {
@@ -701,7 +736,6 @@ export default function Scenario() {
           sid={sid}
         />
       )}
-
       {aiModal && (
         <AIModal
           open={aiModal}
@@ -710,7 +744,6 @@ export default function Scenario() {
           onGenerated={() => loadScenarioData()}
         />
       )}
-
       {importModal && (
         <ImportModal
           open={importModal}
@@ -723,7 +756,6 @@ export default function Scenario() {
   );
 }
 
-// SummaryCard component tetap sama
 function SummaryCard({ label, value, color, icon }) {
   const colors = {
     blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400",
