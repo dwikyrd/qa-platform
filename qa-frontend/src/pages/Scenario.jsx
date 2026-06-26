@@ -39,8 +39,9 @@ export default function Scenario() {
   const [highlightedTC, setHighlightedTC] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [user, setUser] = useState(null);
-  const scrollPositionRef = useRef(0);
+  const [isReordering] = useState(false);
   const TABLE_CONTAINER_REF = useRef(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   // Metadata edit state
   const [showMetaEdit, setShowMetaEdit] = useState(false);
@@ -62,6 +63,10 @@ export default function Scenario() {
   });
   const [aiModal, setAiModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
+  // 2. Fungsi untuk mengunci UI SEJAK item diangkat
+  const handleDragStart = () => {
+    setIsLocked(true); // 🔒 KUNCI UI SEGERA
+  };
 
   useEffect(() => {
     loadUser();
@@ -240,6 +245,9 @@ export default function Scenario() {
 
   // ✅ HANDLE REORDER DENGAN BEFORE/AFTER TRACKING
   const handleReorder = async (newOrder) => {
+    const loadingToast = toast.loading(
+      "Resequencing test case & attachment...",
+    );
     console.log("\n🚀 DRAG & DROP REORDER START");
 
     // 1. Ambil array tc_id dari state baru setelah di-drag
@@ -309,10 +317,13 @@ export default function Scenario() {
           }
         }
       }, 300);
+      await loadScenarioData();
     } catch (error) {
       console.error("❌ Reorder failed:", error);
       toast.error("Gagal mengubah urutan");
-      await loadScenarioData();
+    } finally {
+      setIsLocked(false);
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -430,6 +441,24 @@ export default function Scenario() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar user={user} onLogout={handleLogout} />
+      {/* ✅ FULLSCREEN OVERLAY - Mengunci SEMUA aktivitas (Drag, Klik, Scroll) */}
+      {isLocked && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center cursor-not-allowed select-none">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+              Sedang Memproses...
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+              Sistem sedang memindahkan Test Case & Attachment.
+              <br />
+              <span className="font-semibold text-red-500">
+                Mohon jangan klik atau tutup halaman.
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
@@ -711,6 +740,7 @@ export default function Scenario() {
             onUpdateCell={handleUpdateCell}
             onDelete={handleDeleteRow}
             onReorder={handleReorder}
+            isDisabled={isReordering}
             onCellBlur={handleCellBlur}
             onCopy={handleCopyTC}
             onOpenAttachment={(tcId, type) => {

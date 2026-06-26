@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import TestCaseRow from "./TestCaseRow";
-import { testCaseAPI } from "../services/api";
 import toast from "react-hot-toast";
 import { safeArray } from "../utils/safeArray";
 
@@ -15,10 +14,14 @@ export default function TestCaseTable({
   onCopy,
   onOpenAttachment,
   onToggleReview,
+  onReorder, // ✅ WAJIB: dari Scenario.jsx
+  onDragStart, // ✅ WAJIB: dari Scenario.jsx (untuk trigger loading overlay)
+  isDragDisabled, // ✅ WAJIB: dari Scenario.jsx (untuk lock UI)
   userRole,
   sid,
 }) {
   const [draggedItem, setDraggedItem] = useState(null);
+  const [dropTargetId, setDropTargetId] = useState(null);
 
   // Ctrl+D untuk copy test case
   useEffect(() => {
@@ -51,48 +54,96 @@ export default function TestCaseTable({
     }
   };
 
-  // Drag handlers
-  const handleDragStart = (tc) => {
+  // ============================================
+  // DRAG HANDLERS (dengan Loading Overlay Integration)
+  // ============================================
+
+  const handleDragStart = (e, tc) => {
+    // 🚫 BLOCK DRAG jika UI sedang locked
+    if (isDragDisabled) {
+      e.preventDefault();
+      return;
+    }
+
     setDraggedItem(tc);
+
+    // 🔒 TRIGGER LOADING OVERLAY di Scenario.jsx
+    if (onDragStart) {
+      onDragStart();
+    }
+
+    // Set efek visual untuk drag
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", tc.tc_id);
+    }
   };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
+    setDropTargetId(null);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, tc) => {
     e.preventDefault();
+
+    // 🚫 BLOCK DROP jika UI sedang locked
+    if (isDragDisabled) {
+      e.dataTransfer.dropEffect = "none";
+      return;
+    }
+
     e.dataTransfer.dropEffect = "move";
+    setDropTargetId(tc.tc_id);
+  };
+
+  const handleDragLeave = () => {
+    setDropTargetId(null);
   };
 
   const handleDrop = async (e, targetTc) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!draggedItem || draggedItem.tc_id === targetTc.tc_id) return;
+    // 🚫 BLOCK DROP jika UI sedang locked atau tidak ada item yang di-drag
+    if (
+      isDragDisabled ||
+      !draggedItem ||
+      draggedItem.tc_id === targetTc.tc_id
+    ) {
+      setDropTargetId(null);
+      return;
+    }
 
+    // Hitung urutan baru
     const oldIndex = testCases.findIndex(
       (tc) => tc.tc_id === draggedItem.tc_id,
     );
     const newIndex = testCases.findIndex((tc) => tc.tc_id === targetTc.tc_id);
 
+    if (oldIndex === -1 || newIndex === -1) {
+      setDropTargetId(null);
+      return;
+    }
+
     const newOrder = [...testCases];
     const [removed] = newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, removed);
 
-    const newOrderIds = safeArray(newOrder).map((tc) => tc.tc_id);
+    // Reset visual state
+    setDraggedItem(null);
+    setDropTargetId(null);
 
-    try {
-      await testCaseAPI.reorder(sid, newOrderIds);
-      toast.success("Test cases reordered");
-      // Reload data untuk update TC ID numbering
-      window.location.reload();
-    } catch (error) {
-      toast.error("Gagal reorder test cases");
-      console.error(error);
+    // ✅ PANGGIL onReorder dari parent (Scenario.jsx)
+    // Parent akan handle: Loading Overlay → API Call → Before/After Tracking → Reload Data → Unlock UI
+    if (onReorder) {
+      await onReorder(newOrder);
+    } else {
+      toast.error("onReorder function tidak tersedia");
     }
   };
 
+  // Empty state
   if (testCases.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
@@ -108,9 +159,14 @@ export default function TestCaseTable({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-opacity duration-300 ${
+        isDragDisabled ? "opacity-60 pointer-events-none" : ""
+      }`}
+    >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          {/* ✅ STICKY HEADER */}
           <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
             <tr>
               <th className="px-3 py-3 text-left">
@@ -122,6 +178,7 @@ export default function TestCaseTable({
                     testCases.length > 0
                   }
                   className="rounded"
+                  disabled={isDragDisabled}
                 />
               </th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
@@ -170,6 +227,8 @@ export default function TestCaseTable({
                 isSelected={selectedTCs.includes(tc.tc_id)}
                 isHighlighted={highlightedTC === tc.tc_id}
                 isDragging={draggedItem?.tc_id === tc.tc_id}
+                isDropTarget={dropTargetId === tc.tc_id}
+                isDragDisabled={isDragDisabled}
                 onSelect={(checked) => handleSelectTC(tc.tc_id, checked)}
                 onHighlight={() => setHighlightedTC(tc.tc_id)}
                 onUpdateCell={onUpdateCell}
@@ -178,9 +237,10 @@ export default function TestCaseTable({
                 onOpenAttachment={onOpenAttachment}
                 onToggleReview={onToggleReview}
                 userRole={userRole}
-                onDragStart={() => handleDragStart(tc)}
+                onDragStart={(e) => handleDragStart(e, tc)}
                 onDragEnd={handleDragEnd}
-                onDragOver={handleDragOver}
+                onDragOver={(e) => handleDragOver(e, tc)}
+                onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, tc)}
               />
             ))}

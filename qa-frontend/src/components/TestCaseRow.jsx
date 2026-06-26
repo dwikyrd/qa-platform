@@ -18,6 +18,8 @@ export default function TestCaseRow({
   isSelected,
   isHighlighted,
   isDragging,
+  isDropTarget,
+  isDragDisabled,
   onSelect,
   onHighlight,
   onUpdateCell,
@@ -30,6 +32,7 @@ export default function TestCaseRow({
   onDragStart,
   onDragEnd,
   onDragOver,
+  onDragLeave,
   onDrop,
 }) {
   const textareaRefs = useRef({});
@@ -110,10 +113,11 @@ export default function TestCaseRow({
   return (
     <>
       <tr
-        draggable
+        draggable={!isDragDisabled}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
         onDrop={onDrop}
         onClick={onHighlight}
         className={`
