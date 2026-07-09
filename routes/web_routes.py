@@ -9,6 +9,7 @@ from models import (
     get_scenario, get_test_cases, get_test_case_stats, get_all_logs_for_export,
     get_attachment_counts,
 )
+from utils import generate_export_filename
 from services import get_dashboard_analytics, get_project_dashboard_data, prepare_scenario_detail
 
 
@@ -170,9 +171,7 @@ def register_web_routes(app):
         wb.save(output)
         output.seek(0)
         
-        # 4. Kirim File ke Browser
-        safe_title = re.sub(r'[^\w\-_\. ]', '_', scenario.get('title', 'scenario'))
-        filename = f"{project_name}_{safe_title}_{sid}.xlsx"
+        filename = generate_export_filename(scenario, project)
         
         return send_file(
             output,
