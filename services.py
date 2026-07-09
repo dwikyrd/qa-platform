@@ -120,6 +120,7 @@ def export_to_excel(sid):
     """Export test cases ke Excel dengan handling screenshot yang lebih baik"""
     import os
     import io
+    import re
     import html
     import traceback
     import openpyxl
@@ -139,8 +140,18 @@ def export_to_excel(sid):
     )
     from utils import generate_export_filename
     
+    # ===== FUNGSI SANITASI: Hapus Karakter Ilegal XML/Excel =====
+    ILLEGAL_CHARS_REGEX = re.compile(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]')
+    
+    def sanitize_value(value):
+        """Bersihkan karakter ilegal dari string"""
+        if value is None:
+            return ''
+        if not isinstance(value, str):
+            value = str(value)
+        return ILLEGAL_CHARS_REGEX.sub('', value)
+    
     # ===== PENTING: Tentukan UPLOAD_FOLDER dengan benar =====
-    # Gunakan path absolut dari lokasi file ini (services.py)
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
     
@@ -185,7 +196,7 @@ def export_to_excel(sid):
         # Header
         header = ws.cell(row=1, column=1, value="System Integration Testing")
         header.font = Font(size=20, bold=True, color="1F4E79")
-        ws.merge_cells(start_row=1, end_row=1, start_column=1, end_column=2)
+        ws.merge_cells(start_row=1, end_row=1, start_column=1, end_column=2)    
         
         # Metadata
         full_link = sc.get('link') or (proj.get('link') if proj else '-')
@@ -198,8 +209,8 @@ def export_to_excel(sid):
         ]
         
         for i, (label, value) in enumerate(meta, 2):
-            ws.cell(row=i, column=1, value=label).font = Font(bold=True)
-            ws.cell(row=i, column=2, value=value)
+            ws.cell(row=i, column=1, value=sanitize_value(label)).font = Font(bold=True)
+            ws.cell(row=i, column=2, value=sanitize_value(value))
         
         # Test cases header
         hdrs = ["TC ID", "Test Case", "Test Criteria", "Test Date", "Test Data",
@@ -214,14 +225,14 @@ def export_to_excel(sid):
         
         # Test cases data
         for r, tc in enumerate(tcs, start_row + 1):
-            ws.cell(row=r, column=1, value=tc.get('tc_id'))
-            ws.cell(row=r, column=2, value=tc.get('test_case') or "-")
+            ws.cell(row=r, column=1, value=sanitize_value(tc.get('tc_id')))
+            ws.cell(row=r, column=2, value=sanitize_value(tc.get('test_case') or "-"))
             
             for c, k in enumerate(['test_criteria', 'test_date', 'test_data',
                                    'expected_result', 'actual_result', 'status', 'remarks'], 3):
                 val = tc.get(k)
                 if val and isinstance(val, str):
-                    val = val.strip()
+                    val = sanitize_value(val.strip())
                     cell = ws.cell(row=r, column=c, value=val if val else "-")
                     if '\n' in val or len(val) > 50:
                         cell.alignment = Alignment(wrap_text=True, vertical='top')
@@ -233,7 +244,7 @@ def export_to_excel(sid):
                           else "FFA500" if val == "In Progress" else "808080"
                     ws.cell(row=r, column=c).font = Font(bold=True, color=col)
             
-            # Border
+            # ✅ PERBAIKAN: Border styling (tambahkan '=c')
             for c in range(1, 10):
                 ws.cell(row=r, column=c).border = Border(
                     bottom=Side(style="thin"), top=Side(style="thin"),
@@ -242,7 +253,7 @@ def export_to_excel(sid):
             
             ws.row_dimensions[r].height = 20
         
-        # ===== SHEET SCREENSHOTS (FIXED) =====
+        # ===== SHEET SCREENSHOTS =====
         ws2 = wb.create_sheet("Screenshots")
         ws2.column_dimensions['A'].width = 12
         ws2.column_dimensions['B'].width = 35
@@ -260,8 +271,8 @@ def export_to_excel(sid):
             screenshots = sc_dict.get(tc_id, [])
             
             for img in screenshots:
-                ws2.cell(row=ri, column=1, value=tc_id)
-                ws2.cell(row=ri, column=2, value=img['name'])
+                ws2.cell(row=ri, column=1, value=sanitize_value(tc_id))
+                ws2.cell(row=ri, column=2, value=sanitize_value(img['name']))
                 
                 # Build full path
                 img_filename = img['path']
@@ -312,7 +323,6 @@ def export_to_excel(sid):
                     ws2.cell(row=ri, column=3, value=error_msg)
                     images_failed += 1
                     print(f"      {error_msg}")
-                    # Lanjut ke gambar berikutnya, jangan hentikan export
                 
                 ri += 1
         
@@ -326,9 +336,10 @@ def export_to_excel(sid):
             ws3.cell(row=1, column=i, value=h).font = Font(bold=True)
         
         for i, log in enumerate(all_logs, 2):
-            ws3.cell(row=i, column=1, value=log.get('tc_id'))
-            ws3.cell(row=i, column=2, value=log.get('custom_name') or f"Log_{log.get('id', i)}")
-            ws3.cell(row=i, column=3, value=log.get('content', ''))
+            ws3.cell(row=i, column=1, value=sanitize_value(log.get('tc_id')))
+            ws3.cell(row=i, column=2, value=sanitize_value(log.get('custom_name') or f"Log_{log.get('id', i)}"))
+            # ✅ Sanitasi content log (sumber utama karakter ilegal)
+            ws3.cell(row=i, column=3, value=sanitize_value(log.get('content', '')))
             ws3.cell(row=i, column=3).alignment = Alignment(wrap_text=True)
         
         # Save ke buffer
@@ -346,6 +357,4 @@ def export_to_excel(sid):
         error_detail = traceback.format_exc()
         print(f"\n❌ Export error: {error_detail}")
         return None, str(e)
-    
-
     
