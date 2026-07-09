@@ -21,8 +21,22 @@ def get_all_projects():
     return {'active': active, 'archived': archived}
 
 def get_project(pid):
-    """Ambil satu project by ID"""
-    return query_db('projects', filters={'id': pid}, fetch='one')
+    """Ambil satu project by ID (Aman untuk tipe data 0 atau False)"""
+    if not pid:
+        return None
+        
+    # 1. Ambil berdasarkan ID saja
+    results = query_db('projects', filters={'id': pid}, fetch='all')
+    
+    if not results:
+        return None
+    
+    # 2. Filter is_archived secara manual
+    for p in results:
+        if not p.get('is_archived'):
+            return p
+            
+    return None
 
 def create_project(name, link=''):
     """Buat project baru. Return (project, error)"""
@@ -86,10 +100,20 @@ def get_scenarios_by_project(pid, include_archived=True, tester_filter=None):
     return scenarios
 
 def get_scenario(sid):
-    """Ambil satu scenario by ID"""
-    return query_db('scenarios',
-                    filters={'id': sid, 'is_deleted': False},
-                    fetch='one')
+    """Ambil satu scenario by ID (Aman untuk tipe data 0 atau False)"""
+    # 1. Ambil berdasarkan ID saja (tanpa filter is_deleted dulu)
+    results = query_db('scenarios', filters={'id': sid}, fetch='all')
+    
+    if not results:
+        return None
+    
+    # 2. Filter is_deleted secara manual di Python 
+    # (Di Python, 0 == False, jadi ini akan menangkap keduanya)
+    for s in results:
+        if not s.get('is_deleted'): 
+            return s
+            
+    return None
 
 def create_scenario(pid, title):
     """Buat scenario baru. Return (scenario, error)"""
